@@ -26,16 +26,14 @@ using std::setw;
 ///
 /// We provide a plausible default value of mDmiWidth
 /// \param[in] clkPeriodNs    \see VSim::VSim
-/// \param[in] tckPeriodNs    \see VSim::VSim
-/// \param[in] resetPeriodNs  \see VSim::VSim
 /// \param[in] simTimeNs      \see VSim::VSim
+/// \param[in] vcdFile        \see VSim::VSim
 DtmJtag::DtmJtag (const vluint64_t clkPeriodNs,
-		  const vluint64_t tckPeriodNs,
-		  const vluint64_t resetPeriodNs,
-		  const vluint64_t simTimeNs) :
+		  const vluint64_t simTimeNs,
+		  const char * vcdFile) :
   mDmiWidth (42U)
 {
-  mTap.reset (new Tap (clkPeriodNs, tckPeriodNs, resetPeriodNs, simTimeNs));
+  mTap.reset (new Tap (clkPeriodNs, simTimeNs, vcdFile));
 }
 
 /// \brief Destructor for the JTAG DTM.

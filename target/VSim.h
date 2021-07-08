@@ -23,9 +23,8 @@ class VSim
 
   // Constructors and destructors
   VSim (const vluint64_t clkPeriodNs,
-	const vluint64_t tckPeriodNs,
-	const vluint64_t resetPeriodNs,
-	const vluint64_t simTimeNs);
+	const vluint64_t simTimeNs,
+	const char * vcdFile);
   VSim (const VSim&) = delete;
   ~VSim();
 
@@ -52,6 +51,9 @@ private:
 
   /// \brief The verilator simulation context
   std::unique_ptr<VerilatedContext> mContextp;
+
+  /// \brief Is dumping requested?
+  bool mHaveVcd;
 
   /// \brief Verilator dump state
   std::unique_ptr<VerilatedVcdC> mTfp;

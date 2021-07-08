@@ -15,21 +15,20 @@ using std::endl;
 
 /// \brief Constructor for the Verilator simulator
 ///
+/// \note We hard code some of the timing parameters.  The JTAG clock period
+///       is 10x the main clock period.  The reset time is 5 JTAG clock
+///       periods.
+///
 /// \param[in] clkPeriodNs    Main clock period in nanoseconds
-/// \param[in] tckPeriodNs    JTAG TAP clock period in nanoseconds.  Should be
-///                           at least 10x the main clock period.
-/// \param[in] resetPeriodNs  Reset period in nanoseconds.  Should be at
-///                           least 5 JTAG clock periods.
 /// \param[in] simTimeNs      Time to simulate for.  Zero means simulate
 ///                           forever.
+/// \param[in] vcdFile        VCD file name for tracing, if any
 VSim::VSim (const vluint64_t clkPeriodNs,
-	    const vluint64_t tckPeriodNs,
-	    const vluint64_t resetPeriodNs,
-	    const vluint64_t simTimeNs)
+	    const vluint64_t simTimeNs,
+	    const char * vcdFile)
 {
   mContextp.reset(new VerilatedContext);
   mCpu.reset(new Vcore_v_mcu_wrapper);
-  mTfp.reset(new VerilatedVcdC);
 
   // Set up simulation context with 1ns ticks
   mContextp->timeunit(9);
@@ -38,28 +37,24 @@ VSim::VSim (const vluint64_t clkPeriodNs,
        << mContextp->timeprecisionString() << endl;
 
   // Set up tracing
-  Verilated::traceEverOn (true);
-  mCpu->trace (mTfp.get(), 99);
-  mTfp->set_time_unit("1ns");
-  mTfp->set_time_resolution("1ns");
-  mTfp->open ("simx.vcd");
+  mHaveVcd = strlen (vcdFile) > 0;
 
-  // Set up clock timings reset and simulation time, warning if JTAG looks too
-  // quick or reset period is too short.  Easy because we have made 1 tick =
-  // 1ns.
-  if ((clkPeriodNs * 10) < tckPeriodNs)
-    cerr << "Warning: JTAG clock period of " << clkPeriodNs
-	 << "ns less than 10x main clock period of " << tckPeriodNs << "ns"
-	 << endl;
+  if (mHaveVcd)
+    {
+      Verilated::traceEverOn (true);
+      mTfp.reset(new VerilatedVcdC);
+      mCpu->trace (mTfp.get(), 99);
+      mTfp->set_time_unit("1ns");
+      mTfp->set_time_resolution("1ns");
+      mTfp->open (vcdFile);
+    }
 
-  if ((tckPeriodNs * 5) < resetPeriodNs)
-    cerr << "Warning: Reset time of " << resetPeriodNs
-	 << "ns less than 5x JTAG clock period of " << tckPeriodNs << "ns"
-	 << endl;
-
+  // Set up clock timings reset and simulation time.  JTAG and reset times are
+  // hard-coded multiples of the clock period.  Easy because we have aslo hard
+  // coded 1 tick = 1ns.
   mClkHalfPeriodTicks = clkPeriodNs / 2;
-  mTckHalfPeriodTicks = tckPeriodNs / 2;
-  mResetPeriodTicks = resetPeriodNs;
+  mTckHalfPeriodTicks = mClkHalfPeriodTicks * 10;
+  mResetPeriodTicks = mTckHalfPeriodTicks * 5;
   mSimTimeTicks = simTimeNs;
 
   // Initial clock/reset signal values
@@ -83,9 +78,12 @@ VSim::VSim (const vluint64_t clkPeriodNs,
 /// we created in the constructor
 VSim::~VSim ()
 {
-  mTfp->close ();
+  if (mHaveVcd)
+    {
+      mTfp->close ();
+      mTfp.reset(nullptr);
+    }
 
-  mTfp.reset(nullptr);
   mCpu.reset(nullptr);
   mContextp.reset(nullptr);
 }
@@ -181,8 +179,9 @@ void
 VSim::eval ()
 {
   mCpu->eval ();
-  mTfp->dump (mContextp->time ());
 
+  if (mHaveVcd)
+    mTfp->dump (mContextp->time ());
 }
 
 /// \brief Setter for the TDI input port

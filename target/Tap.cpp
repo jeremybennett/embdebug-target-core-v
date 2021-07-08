@@ -26,19 +26,16 @@ using std::unique_ptr;
 /// set this to 1 as a useful default.
 ///
 /// \param[in] clkPeriodNs    \see VSim::VSim
-/// \param[in] tckPeriodNs    \see VSim::VSim
-/// \param[in] resetPeriodNs  \see VSim::VSim
 /// \param[in] simTimeNs      \see VSim::VSim
+/// \param[in] vcdFile        \see VSim::VSim
 Tap::Tap (const uint64_t clkPeriodNs,
-	  const uint64_t tckPeriodNs,
-	  const uint64_t resetPeriodNs,
-	  const uint64_t simTimeNs) :
+	  const uint64_t simTimeNs,
+	  const char * vcdFile) :
   mLastIr (0), mRtiCount (1)
 {
   mMcu.reset (new VSim (static_cast<const vluint64_t> (clkPeriodNs),
-			static_cast<const vluint64_t> (tckPeriodNs),
-			static_cast<const vluint64_t> (resetPeriodNs),
-			static_cast<const vluint64_t> (simTimeNs)));
+			static_cast<const vluint64_t> (simTimeNs),
+			vcdFile));
 }
 
 /// \brief Destructor for the JTAG TAP model

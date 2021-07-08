@@ -20,9 +20,8 @@ public:
 
   // Constructor and destructor
   DtmJtag (const uint64_t clkPeriodNs,
-	   const uint64_t tckPeriodNs,
-	   const uint64_t resetPeriodNs,
-	   const uint64_t simTimeNs);
+	   const uint64_t simTimeNs,
+	   const char * vcdFile);
   DtmJtag (const DtmJtag&) = delete;
   ~DtmJtag ();
 

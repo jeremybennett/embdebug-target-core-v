@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <iostream>
 
+#include "Args.h"
 #include "IDtm.h"
 #include "DtmJtag.h"
 
@@ -24,12 +25,6 @@ using std::hex;
 using std::setfill;
 using std::setw;
 using std::unique_ptr;
-
-// Called by $time in Verilog
-// double
-// sc_time_stamp() {
-//   return static_cast<double>(tickCount);  // Match SystemC
-// }
 
 /// \brief Population count of ones.
 ///
@@ -97,56 +92,40 @@ int
 main(int   argc,
      char *argv[])
 {
-  unique_ptr<IDtm> dtm (new DtmJtag (/* clkPeriodNs = */ 10U,
-				     /* tckPeriodNs = */ 100U,
-				     /* resetPeriodNs = */ 500U,
-				     /* simTimeNs = */ 1000000000ULL));
-
+  unique_ptr<Args> args (new Args (argc, argv));
+  unique_ptr<IDtm> dtm (new DtmJtag (args->clkPeriodNs (), args->durationNs (),
+				     args->vcd ().c_str ()));
   // Reset the processor
   dtm->reset ();
 
   // Explore the target
-  uint32_t dmcontrol = IDtm::HARTSELLO | IDtm::HARTSELHI;
+  uint32_t dmcontrol = IDtm::HARTSELLO_MASK | IDtm::HARTSELHI_MASK;
   // cout << "dmcontrol = 0x" << setw (8) << setfill ('0') << hex << dmcontrol
   //      << dec << setfill (' ') << setw (0) << endl;
   dmcontrol = dtm->dmiWrite (static_cast<uint64_t> (IDtm::DMCONTROL), dmcontrol);
   // cout << "dmcontrol = 0x" << setw (8) << setfill ('0') << hex << dmcontrol
   //      << dec << setfill (' ') << setw (0) << endl;
-  int hiOff = floor_log2 (IDtm::HARTSELHI & -IDtm::HARTSELHI);
-  int hiSize = ceil_log2 (IDtm::HARTSELHI >> hiOff);
-  int loOff = floor_log2 (IDtm::HARTSELLO & -IDtm::HARTSELLO);
-  int loSize = ceil_log2 (IDtm::HARTSELLO >> loOff);
-  uint32_t hartselhi = (dmcontrol & IDtm::HARTSELHI) >> hiOff ;
-  uint32_t hartsello = (dmcontrol & IDtm::HARTSELLO) >> loOff;
-  uint32_t hartsel = (hartselhi << loSize) | hartsello;
-  // cout << "hartsel = 0x" << setw (8) << setfill ('0') << hex << hartsel
-  //      << dec << setfill (' ') << setw (0) << endl;
-
-  // cout << "hiOff = " << hiOff << ", hiSize = " << hiSize << ", loOff = "
-  //      << loOff << ", loSize = " << loSize << endl;
-  uint32_t numHarts = hartsel;
-  for (uint32_t h = 0; h <= hartsel; h++)
+  uint32_t hartselhi = (dmcontrol & IDtm::HARTSELHI_MASK)
+    >> IDtm::HARTSELHI_OFFSET;
+  uint32_t hartsello = (dmcontrol & IDtm::HARTSELLO_MASK)
+    >> IDtm::HARTSELLO_OFFSET;
+  uint32_t hartsel = (hartselhi << IDtm::HARTSELLO_SIZE) | hartsello;
+  uint32_t numHarts;
+  for (numHarts = 0; numHarts <= hartsel; numHarts++)
     {
-      hartselhi = h >> hiSize;
-      hartsello = h & ((1U << loSize) - 1U);
-      // cout << "mask =0x" << setw (8) << setfill ('0') << hex << ((1U << loSize) - 1U)
-      //  << dec << setfill (' ') << setw (0) << endl;
-      // cout << "h = 0x" << setw (8) << setfill ('0') << hex << h << ", hi = 0x"
-      // 	   << hartselhi << ", lo = 0x" << hartsello
-      // 	   << dec << setfill (' ') << setw (0) << endl;
-      dmcontrol = (hartselhi << hiOff) | (hartsello << loOff);
-      cout << "h = " << setw (7) << h << ", dmcontrol = 0x" << setw (8)
+      hartselhi = numHarts >> IDtm::HARTSELLO_SIZE;
+      hartsello = numHarts & ((1U << IDtm::HARTSELLO_SIZE) - 1U);
+      dmcontrol = (hartselhi << IDtm::HARTSELHI_OFFSET)
+	| (hartsello << IDtm::HARTSELLO_OFFSET);
+      cout << "hart = " << setw (7) << numHarts << ", dmcontrol = 0x" << setw (8)
 	   << setfill ('0') << hex << dmcontrol;
       dmcontrol = dtm->dmiWrite (static_cast<uint64_t> (IDtm::DMCONTROL),
 				 dmcontrol);
       uint32_t dmstatus = dtm->dmiRead (static_cast<uint64_t> (IDtm::DMSTATUS));
       cout << ", dmstatus = 0x" << setw (8) << setfill ('0') << hex << dmstatus
 	   << dec << setfill (' ') << setw (0) << endl;
-      if ((dmstatus & IDtm::ANYNONEXISTENT) != 0)
-	{
-	  numHarts = h - 1;
-	  break;
-	}
+      if ((dmstatus & IDtm::ANYNONEXISTENT_MASK) != 0)
+	break;
     }
 
   cout << "Num HARTS: " << numHarts << endl;

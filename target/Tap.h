@@ -19,9 +19,8 @@ public:
 
   // Constructor and destructor
   Tap (const uint64_t clkPeriodNs,
-       const uint64_t tckPeriodNs,
-       const uint64_t resetPeriodNs,
-       const uint64_t simTimeNs);
+       const uint64_t simTimeNs,
+       const char * vcdFile);
   Tap (const Tap&) = delete;
   ~Tap ();
 

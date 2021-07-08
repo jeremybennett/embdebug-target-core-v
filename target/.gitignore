@@ -1,0 +1,6 @@
+# compiled binaries
+*.o
+testbench.exe
+# Logs and traces
+*.log
+*.vcd

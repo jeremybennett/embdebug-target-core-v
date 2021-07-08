@@ -25,11 +25,12 @@ MODEL_DIR ?= $(MCU_DIR)/build/openhwgroup.org_systems_core-v-mcu_0/model-lib-ver
 MODEL_LIB ?= $(MODEL_DIR)/obj_dir/Vcore_v_mcu_wrapper__ALL.a
 
 CXX := g++
-CPPFLAGS := $(shell pkg-config --cflags verilator) -I$(MODEL_DIR)/obj_dir
+CPPFLAGS := $(shell pkg-config --cflags verilator) -I$(MODEL_DIR)/obj_dir \
+            -I../vendor/cxxopts-3.0.0rc/include
 CXXFLAGS := -Os
 LDFLAGS :=
 
-OBJS = DtmJtag.o Tap.o VSim.o testbench.o
+OBJS = Args.o DtmJtag.o Tap.o VSim.o testbench.o
 
 .PHONY: all
 all: boot/boot_code.cde testbench.exe
@@ -48,7 +49,8 @@ boot/boot_code.cde:
 	ln -s $(MCU_DIR)/sim/boot/boot_code.cde $@
 
 # Header dependencies
-testbench.o: IDtm.h DtmJtag.h
+testbench.o: Args.h IDtm.h DtmJtag.h
+Args.o: Args.h
 DtmJtag.o: IDtm.h DtmJtag.h Tap.h
 Tap.o: Tap.h VSim.h
 VSim.o: VSim.h
@@ -57,6 +59,8 @@ VSim.o: VSim.h
 testbench.o: testbench.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
+Args.o: Args.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 DtmJtag.o: DtmJtag.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 Tap.o: Tap.cpp
@@ -67,3 +71,7 @@ VSim.o: VSim.cpp
 .PHONY: clean
 clean:
 	$(RM) $(OBJS) testbench.exe verilated.o verilated_vcd_c.o
+
+.PHONY: distclean
+distclean: clean
+	$(RM) *.vcd *.VCD *.log
