@@ -6,11 +6,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <iostream>
+#include <iomanip>
 
 #include "Tap.h"
 
+using std::cout;
 using std::cerr;
+using std::dec;
 using std::endl;
+using std::hex;
+using std::setfill;
+using std::setw;
 using std::unique_ptr;
 
 /// \brief Constructor for the JTAG TAP model
