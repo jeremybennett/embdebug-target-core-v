@@ -5,13 +5,13 @@
 // Copyright (C) 2021 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 
 #include "Tap.h"
 
-using std::cout;
 using std::cerr;
+using std::cout;
 using std::dec;
 using std::endl;
 using std::hex;
@@ -34,21 +34,19 @@ using std::unique_ptr;
 /// \param[in] clkPeriodNs    \see VSim::VSim
 /// \param[in] simTimeNs      \see VSim::VSim
 /// \param[in] vcdFile        \see VSim::VSim
-Tap::Tap (const uint64_t clkPeriodNs,
-	  const uint64_t simTimeNs,
-	  const char * vcdFile) :
-  mLastIr (0), mRtiCount (1)
+Tap::Tap (const uint64_t clkPeriodNs, const uint64_t simTimeNs,
+          const char *vcdFile)
+    : mLastIr (0), mRtiCount (1)
 {
   mMcu.reset (new VSim (static_cast<const vluint64_t> (clkPeriodNs),
-			static_cast<const vluint64_t> (simTimeNs),
-			vcdFile));
+                        static_cast<const vluint64_t> (simTimeNs), vcdFile));
 }
 
 /// \brief Destructor for the JTAG TAP model
 ///
 /// While the MCU should be cleaned up automatically, we do this explicitly as
 /// good practice.
-Tap::~Tap()
+Tap::~Tap ()
 {
   mMcu.reset (nullptr);
 }
@@ -91,17 +89,17 @@ Tap::rtiCount (const uint8_t rtiCount_)
 bool
 Tap::reset ()
 {
-  while(mMcu->inReset ())
+  while (mMcu->inReset ())
     {
       if (mMcu->allDone ())
-	return false;
+        return false;
 
-      mMcu->tms (0U);			// Needed for this implementation
+      mMcu->tms (0U); // Needed for this implementation
       mMcu->eval ();
       mMcu->advanceHalfPeriod ();
     }
 
-  mCurrState = RUN_TEST_IDLE;		// Should be Test-Logic-Reset
+  mCurrState = RUN_TEST_IDLE; // Should be Test-Logic-Reset
   return true;
 }
 
@@ -120,7 +118,8 @@ Tap::accessReg (const uint8_t ir, uint64_t wdata, const uint8_t len)
   // Sanity check
   if (len > 64)
     {
-      cerr << "ERROR: Attempt to access JTAG register of size " << len << endl;
+      cerr << "ERROR: Attempt to access JTAG register of size "
+           << static_cast<unsigned int> (len) << endl;
       exit (EXIT_FAILURE);
     }
 
@@ -132,7 +131,7 @@ Tap::accessReg (const uint8_t ir, uint64_t wdata, const uint8_t len)
   else
     shiftIr (ir);
 
-  uint64_t reg = static_cast<uint32_t>(shiftDr (wdata, len));
+  uint64_t reg = static_cast<uint32_t> (shiftDr (wdata, len));
   gotoState (UPDATE_DR);
 
   return reg;
@@ -148,7 +147,7 @@ Tap::accessReg (const uint8_t ir, uint64_t wdata, const uint8_t len)
 void
 Tap::writeReg (const uint8_t ir, uint64_t wdata, const uint8_t len)
 {
-  static_cast<void>(accessReg (ir, wdata, len));
+  static_cast<void> (accessReg (ir, wdata, len));
 }
 
 /// \brief Generic read from a JTAG register.
@@ -176,11 +175,12 @@ Tap::shiftIr (const uint8_t ireg)
 
   // Shift in LS bit first, staying in SHIFT_IR for all but the last bit
   for (int i = 0; i < (IR_LEN - 1); i++)
-    static_cast<void> (advanceState(/* tms = */ false,
-				    /* tdi = */ (ireg & (1 << i)) != 0));
+    static_cast<void> (advanceState (/* tms = */ false,
+                                     /* tdi = */ (ireg & (1 << i)) != 0));
 
-  static_cast<void> (advanceState(/* tms = */ true,
-				  /* tdi = */ (ireg & (1 << (IR_LEN - 1))) != 0));
+  static_cast<void> (advanceState (/* tms = */ true,
+                                   /* tdi = */
+                                   (ireg & (1 << (IR_LEN - 1))) != 0));
 
   static_cast<void> (gotoState (UPDATE_IR));
 }
@@ -196,24 +196,24 @@ Tap::shiftDr (const uint64_t dreg, size_t len)
   static_cast<void> (gotoState (SHIFT_DR));
 
   // Shift in the first LS bit
-  static_cast<void> (advanceState(/* tms = */ false,
-				  /* tdi = */ (dreg & 1) != 0));
+  static_cast<void> (advanceState (/* tms = */ false,
+                                   /* tdi = */ (dreg & 1) != 0));
 
   // Start shifting out bits
-  uint64_t regOut;
+  uint64_t regOut = 0;
   for (int i = 1; i < (len - 1); i++)
-    if (advanceState(/* tms = */ false,
-		     /* tdi = */ (dreg & (1ULL << i)) != 0))
+    if (advanceState (/* tms = */ false,
+                      /* tdi = */ (dreg & (1ULL << i)) != 0))
       regOut |= 1ULL << (i - 1);
 
   // Shift in the last bit and out the penultimate bit
-  if (advanceState(/* tms = */ true,
-		   /* tdi = */ (dreg & (1ULL << (len - 1))) != 0))
+  if (advanceState (/* tms = */ true,
+                    /* tdi = */ (dreg & (1ULL << (len - 1))) != 0))
     regOut |= 1ULL << (len - 2);
 
   // Shift out the last bit
-  if (advanceState(/* tms = */ false,
-		   /* tdi = */ (dreg & (1ULL << (len - 1))) != 0))
+  if (advanceState (/* tms = */ false,
+                    /* tdi = */ (dreg & (1ULL << (len - 1))) != 0))
     regOut |= 1ULL << (len - 1);
 
   static_cast<void> (gotoState (UPDATE_DR));
@@ -232,24 +232,26 @@ Tap::gotoState (const Tap::State s)
   // A table showing the TMS value for the first step for getting for the
   // state of the first argument, to the state of the second argument.
   static const uint8_t nextStateTab[NUM_STATES][NUM_STATES] =
-  //   TLR                     UDR
-    { { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // Test-Logic-Reset ->
-      { 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Run-Test/Idle ->
-      { 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1 }, // Select-DR-Scan ->
-      { 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Capture-DR ->
-      { 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Shift-DR ->
-      { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 }, // Exit1-DR ->
-      { 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Pause-DR ->
-      { 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 }, // Exit2-DR ->
-      { 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Update-DR ->
-      { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 }, // Select-IR-Scan ->
-      { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1 }, // Capture-IR ->
-      { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1 }, // Shift-IR ->
-      { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1 }, // Exit1-IR ->
-      { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 }, // Pause-IR ->
-      { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1 }, // Exit2-IR ->
-      { 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Update-IR ->
-    };
+      //   TLR                     UDR
+      {
+        { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0 }, // Test-Logic-Reset ->
+        { 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Run-Test/Idle ->
+        { 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1 }, // Select-DR-Scan ->
+        { 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Capture-DR ->
+        { 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Shift-DR ->
+        { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 }, // Exit1-DR ->
+        { 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Pause-DR ->
+        { 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 }, // Exit2-DR ->
+        { 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Update-DR ->
+        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 }, // Select-IR-Scan ->
+        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1 }, // Capture-IR ->
+        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1 }, // Shift-IR ->
+        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1 }, // Exit1-IR ->
+        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 }, // Pause-IR ->
+        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1 }, // Exit2-IR ->
+        { 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Update-IR ->
+      };
 
   // Safety check
   if (static_cast<unsigned> (s) >= NUM_STATES)
@@ -265,7 +267,7 @@ Tap::gotoState (const Tap::State s)
       bool tms = (1U == nextStateTab[mCurrState][s]);
       // Drive TMS into TAP state machine, which will leave as at JTAG TAP
       // negative edge. We ignore the TDO output.
-      tdo_reg = advanceState(tms, /* tdi = */ false);
+      tdo_reg = advanceState (tms, /* tdi = */ false);
     }
 
   return tdo_reg;
@@ -289,22 +291,22 @@ Tap::advanceState (const bool tms, const bool tdi)
   while (!mMcu->tapPosedge ())
     {
       mMcu->eval ();
-      mMcu->advanceHalfPeriod();
+      mMcu->advanceHalfPeriod ();
     }
 
   // Set TMS and drive to the next JTAG TAP negedge.
-  mMcu->tms(tms);
-  mMcu->tdi(tdi);
+  mMcu->tms (tms);
+  mMcu->tdi (tdi);
 
   while (!mMcu->tapNegedge ())
     {
       mMcu->eval ();
-      mMcu->advanceHalfPeriod();
+      mMcu->advanceHalfPeriod ();
     }
 
   // Update the record of the state we are in and then return the TDO
-  nextState(mMcu->tms());
-  return mMcu->tdo();
+  nextState (mMcu->tms ());
+  return mMcu->tdo ();
 }
 
 /// \brief Helper to get the next state.
@@ -315,24 +317,24 @@ Tap::advanceState (const bool tms, const bool tdi)
 void
 Tap::nextState (const bool tms)
 {
-  static const State trans[NUM_STATES][2] =
-    { { RUN_TEST_IDLE, TEST_LOGIC_RESET },	// Test-Logic-Reset ->
-      { RUN_TEST_IDLE, SELECT_DR_SCAN   },	// Run-Test/Idle ->
-      { CAPTURE_DR,    SELECT_IR_SCAN   },	// Select-DR-Scan ->
-      { SHIFT_DR,      EXIT1_DR         },	// Capture-DR ->
-      { SHIFT_DR,      EXIT1_DR         },	// Shift-DR ->
-      { PAUSE_DR,      UPDATE_DR        },	// Exit1-DR ->
-      { PAUSE_DR,      EXIT2_DR         },	// Pause-DR ->
-      { SHIFT_DR,      UPDATE_DR        },	// Exit2-DR ->
-      { RUN_TEST_IDLE, SELECT_DR_SCAN   },	// Update-DR ->
-      { CAPTURE_IR,    TEST_LOGIC_RESET },	// Select-IR-Scan ->
-      { SHIFT_IR,      EXIT1_IR         },	// Capture-IR ->
-      { SHIFT_IR,      EXIT1_IR         },	// Shift-IR ->
-      { PAUSE_IR,      UPDATE_IR        },	// Exit1-IR ->
-      { PAUSE_IR,      EXIT2_IR         },	// Pause-IR ->
-      { SHIFT_IR,      UPDATE_IR        },	// Exit2-IR ->
-      { RUN_TEST_IDLE, SELECT_DR_SCAN   },	// Update-DR ->
-    };
+  static const State trans[NUM_STATES][2] = {
+    { RUN_TEST_IDLE, TEST_LOGIC_RESET }, // Test-Logic-Reset ->
+    { RUN_TEST_IDLE, SELECT_DR_SCAN },   // Run-Test/Idle ->
+    { CAPTURE_DR, SELECT_IR_SCAN },      // Select-DR-Scan ->
+    { SHIFT_DR, EXIT1_DR },              // Capture-DR ->
+    { SHIFT_DR, EXIT1_DR },              // Shift-DR ->
+    { PAUSE_DR, UPDATE_DR },             // Exit1-DR ->
+    { PAUSE_DR, EXIT2_DR },              // Pause-DR ->
+    { SHIFT_DR, UPDATE_DR },             // Exit2-DR ->
+    { RUN_TEST_IDLE, SELECT_DR_SCAN },   // Update-DR ->
+    { CAPTURE_IR, TEST_LOGIC_RESET },    // Select-IR-Scan ->
+    { SHIFT_IR, EXIT1_IR },              // Capture-IR ->
+    { SHIFT_IR, EXIT1_IR },              // Shift-IR ->
+    { PAUSE_IR, UPDATE_IR },             // Exit1-IR ->
+    { PAUSE_IR, EXIT2_IR },              // Pause-IR ->
+    { SHIFT_IR, UPDATE_IR },             // Exit2-IR ->
+    { RUN_TEST_IDLE, SELECT_DR_SCAN },   // Update-DR ->
+  };
 
   mCurrState = tms ? trans[mCurrState][1] : trans[mCurrState][0];
 }
@@ -349,27 +351,15 @@ const char *
 Tap::nameState (const State s) const
 {
   // Array of state names
-  static const char *nameTable[NUM_STATES] =
-    { "Test-Logic-Reset",
-      "Run-Test/Idle",
-      "Select-DR-Scan",
-      "Capture-DR",
-      "Shift-DR",
-      "Exit1-DR",
-      "Pause-DR",
-      "Exit2-DR",
-      "Update-DR",
-      "Select-IR-Scan",
-      "Capture-IR",
-      "Shift-IR",
-      "Exit1-IR",
-      "Pause-IR",
-      "Exit2-IR",
-      "Update-DR",
-    };
+  static const char *nameTable[NUM_STATES] = {
+    "Test-Logic-Reset", "Run-Test/Idle",  "Select-DR-Scan", "Capture-DR",
+    "Shift-DR",         "Exit1-DR",       "Pause-DR",       "Exit2-DR",
+    "Update-DR",        "Select-IR-Scan", "Capture-IR",     "Shift-IR",
+    "Exit1-IR",         "Pause-IR",       "Exit2-IR",       "Update-DR",
+  };
 
   if (static_cast<unsigned> (s) < NUM_STATES)
-      return nameTable[s];
+    return nameTable[s];
   else
-      return "out-of-range";
+    return "out-of-range";
 }

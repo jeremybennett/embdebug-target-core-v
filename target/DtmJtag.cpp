@@ -28,10 +28,9 @@ using std::setw;
 /// \param[in] clkPeriodNs    \see VSim::VSim
 /// \param[in] simTimeNs      \see VSim::VSim
 /// \param[in] vcdFile        \see VSim::VSim
-DtmJtag::DtmJtag (const vluint64_t clkPeriodNs,
-		  const vluint64_t simTimeNs,
-		  const char * vcdFile) :
-  mDmiWidth (42U)
+DtmJtag::DtmJtag (const vluint64_t clkPeriodNs, const vluint64_t simTimeNs,
+                  const char *vcdFile)
+    : mDmiWidth (42U)
 {
   mTap.reset (new Tap (clkPeriodNs, simTimeNs, vcdFile));
 }
@@ -58,22 +57,22 @@ DtmJtag::~DtmJtag ()
 bool
 DtmJtag::reset ()
 {
-  if (!mTap->reset())
-    return false;			// Didn't complete reset
+  if (!mTap->reset ())
+    return false; // Didn't complete reset
 
   // Read the DTM JTAG registers
   uint32_t idcode = readIdcode ();
   uint32_t dtmcs = readDtmcs ();
 
   // Update features of JTAG interface
-  mTap->rtiCount (static_cast<uint8_t>((dtmcs >> 12) & 0x7));
-  uint8_t addrSize = static_cast<uint8_t>((dtmcs >> 4) & 0x3f);
+  mTap->rtiCount (static_cast<uint8_t> ((dtmcs >> 12) & 0x7));
+  uint8_t addrSize = static_cast<uint8_t> ((dtmcs >> 4) & 0x3f);
   mDmiWidth = 34U + addrSize;
   mDmiAddrMask = ~((~0ULL) << addrSize);
 
   // Log data
-  cout << "IDCODE = 0x" << setw (8) << setfill ('0') << hex << idcode
-       << dec << setfill (' ') << setw (0) << endl;
+  cout << "IDCODE = 0x" << setw (8) << setfill ('0') << hex << idcode << dec
+       << setfill (' ') << setw (0) << endl;
   cout << "  Version:  0x" << setw (1) << setfill ('0') << hex << (idcode >> 28)
        << dec << setfill (' ') << setw (0) << endl;
   cout << "  Part #:   0x" << setw (4) << setfill ('0') << hex
@@ -85,8 +84,8 @@ DtmJtag::reset ()
   cout << "    Continuation #: 0x" << setw (1) << setfill ('0') << hex
        << ((idcode >> 8) & 0xf) << dec << setfill (' ') << setw (0) << endl;
 
-  cout << "DTMCS = 0x" << setw (8) << setfill ('0') << hex << dtmcs
-       << dec << setfill (' ') << setw (0) << endl;
+  cout << "DTMCS = 0x" << setw (8) << setfill ('0') << hex << dtmcs << dec
+       << setfill (' ') << setw (0) << endl;
   cout << "  dmihardreset: " << ((dtmcs >> 17) & 0x1) << endl;
   cout << "  dmireset:     " << ((dtmcs >> 16) & 0x1) << endl;
   cout << "  idle:         " << ((dtmcs >> 12) & 0x7) << endl;
@@ -94,9 +93,9 @@ DtmJtag::reset ()
   cout << "  abits:        " << static_cast<uint32_t> (addrSize) << endl;
   cout << "  version:      " << (dtmcs & 0xf) << endl;
   cout << "  Addr mask:    0x" << setw (16) << setfill ('0') << hex
-       << mDmiAddrMask <<  dec << setfill (' ') << setw (0) << endl;
+       << mDmiAddrMask << dec << setfill (' ') << setw (0) << endl;
 
-  return true;			// Reset completed.
+  return true; // Reset completed.
 }
 
 /// \brief Read a DMI register.
@@ -109,17 +108,17 @@ DtmJtag::dmiRead (uint64_t address)
   uint64_t reg = static_cast<uint64_t> (OP_READ);
 
   reg |= (address & mDmiAddrMask) << 34;
-  mTap->writeReg (static_cast<uint8_t>(DMIACCESS), reg, mDmiWidth);
+  mTap->writeReg (static_cast<uint8_t> (DMIACCESS), reg, mDmiWidth);
 
   do
-    reg = mTap->readReg (static_cast<uint8_t>(DMIACCESS), mDmiWidth);
+    reg = mTap->readReg (static_cast<uint8_t> (DMIACCESS), mDmiWidth);
   while ((reg & 0x3ULL) == static_cast<uint64_t> (RES_RETRY));
 
   if ((reg & 0x3ULL) != static_cast<uint64_t> (RES_OK))
     cerr << "Warning: unknown JTAG read result " << (reg & 0x3ULL)
-	 << ": ignored" << endl;
+         << ": ignored" << endl;
 
-  return static_cast<uint32_t>((reg >> 2) & 0xffffffffULL);
+  return static_cast<uint32_t> ((reg >> 2) & 0xffffffffULL);
 }
 
 /// \brief Write a DMI register.
@@ -137,19 +136,18 @@ DtmJtag::dmiWrite (uint64_t address, uint32_t wdata)
 
   reg |= static_cast<uint64_t> (wdata) << 2;
   reg |= (address & mDmiAddrMask) << 34;
-  mTap->writeReg (static_cast<uint8_t>(DMIACCESS), reg, mDmiWidth);
+  mTap->writeReg (static_cast<uint8_t> (DMIACCESS), reg, mDmiWidth);
 
   do
-    reg = mTap->readReg (static_cast<uint8_t>(DMIACCESS), mDmiWidth);
+    reg = mTap->readReg (static_cast<uint8_t> (DMIACCESS), mDmiWidth);
   while ((reg & 0x3ULL) == static_cast<uint64_t> (RES_RETRY));
 
   if ((reg & 0x3ULL) != static_cast<uint64_t> (RES_OK))
     cerr << "Warning: unknown JTAG write result " << (reg & 0x3ULL)
-	 << ": ignored" << endl;
+         << ": ignored" << endl;
 
-  return static_cast<uint32_t>((reg >> 2) & 0xffffffffULL);
+  return static_cast<uint32_t> ((reg >> 2) & 0xffffffffULL);
 }
-
 
 /// \brief Read the IDCODE register.
 ///
@@ -159,7 +157,7 @@ DtmJtag::dmiWrite (uint64_t address, uint32_t wdata)
 uint32_t
 DtmJtag::readIdcode ()
 {
-  return mTap->readReg (static_cast<uint8_t>(IDCODE), 32);
+  return mTap->readReg (static_cast<uint8_t> (IDCODE), 32);
 }
 
 /// \brief Read the DTM Control and Status register.
@@ -170,5 +168,5 @@ DtmJtag::readIdcode ()
 uint32_t
 DtmJtag::readDtmcs ()
 {
-  return mTap->readReg (static_cast<uint8_t>(DTMCS), 32);
+  return mTap->readReg (static_cast<uint8_t> (DTMCS), 32);
 }

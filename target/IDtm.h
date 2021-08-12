@@ -17,10 +17,9 @@
 class IDtm
 {
 public:
-
   // Constructor and destructor
   IDtm () = default;
-  IDtm (const IDtm&) = delete;
+  IDtm (const IDtm &) = delete;
   virtual ~IDtm () = default;
 
   // Core API
@@ -29,7 +28,7 @@ public:
   virtual uint32_t dmiWrite (uint64_t address, uint32_t wdata) = 0;
 
   // Delete the copy assignment operator
-  IDtm& operator= (const IDtm&) = delete;
+  IDtm &operator= (const IDtm &) = delete;
 };
 
-#endif	// IDTM_H
+#endif // IDTM_H

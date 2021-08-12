@@ -16,12 +16,10 @@
 class Tap
 {
 public:
-
   // Constructor and destructor
-  Tap (const uint64_t clkPeriodNs,
-       const uint64_t simTimeNs,
-       const char * vcdFile);
-  Tap (const Tap&) = delete;
+  Tap (const uint64_t clkPeriodNs, const uint64_t simTimeNs,
+       const char *vcdFile);
+  Tap (const Tap &) = delete;
   ~Tap ();
 
   // API calls
@@ -32,33 +30,32 @@ public:
   uint64_t readReg (const uint8_t ir, const uint8_t len);
 
   // Delete the copy assignment operator
-  Tap& operator=(const Tap&) = delete;
+  Tap &operator= (const Tap &) = delete;
 
 private:
-
   /// \brief Enumeration of the TAP states.
   ///
   /// The numbering matches that used in the CV32E40P core for convenience.
   enum State
-    {
-     TEST_LOGIC_RESET = 0x0,
-     RUN_TEST_IDLE    = 0x1,
-     SELECT_DR_SCAN   = 0x2,
-     CAPTURE_DR       = 0x3,
-     SHIFT_DR         = 0x4,
-     EXIT1_DR         = 0x5,
-     PAUSE_DR         = 0x6,
-     EXIT2_DR         = 0x7,
-     UPDATE_DR        = 0x8,
-     SELECT_IR_SCAN   = 0x9,
-     CAPTURE_IR       = 0xa,
-     SHIFT_IR         = 0xb,
-     EXIT1_IR         = 0xc,
-     PAUSE_IR         = 0xd,
-     EXIT2_IR         = 0xe,
-     UPDATE_IR        = 0xf,
-     NUM_STATES       = UPDATE_IR + 1,
-    };
+  {
+    TEST_LOGIC_RESET = 0x0,
+    RUN_TEST_IDLE = 0x1,
+    SELECT_DR_SCAN = 0x2,
+    CAPTURE_DR = 0x3,
+    SHIFT_DR = 0x4,
+    EXIT1_DR = 0x5,
+    PAUSE_DR = 0x6,
+    EXIT2_DR = 0x7,
+    UPDATE_DR = 0x8,
+    SELECT_IR_SCAN = 0x9,
+    CAPTURE_IR = 0xa,
+    SHIFT_IR = 0xb,
+    EXIT1_IR = 0xc,
+    PAUSE_IR = 0xd,
+    EXIT2_IR = 0xe,
+    UPDATE_IR = 0xf,
+    NUM_STATES = UPDATE_IR + 1,
+  };
 
   /// \brief Length of the JTAG TAP instruction register
   ///
@@ -74,7 +71,7 @@ private:
   std::unique_ptr<VSim> mMcu;
 
   /// \brief The current state of the TAP
-  State  mCurrState;
+  State mCurrState;
 
   /// \brief The most recent IR shifted
   uint8_t mLastIr;
@@ -92,7 +89,7 @@ private:
   bool gotoState (const State s);
   bool advanceState (const bool tms, const bool tdi);
   void nextState (const bool tms);
-  const char * nameState(const State s) const;
+  const char *nameState (const State s) const;
 };
 
-#endif	// TAP_H
+#endif // TAP_H

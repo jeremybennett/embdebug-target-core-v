@@ -13,20 +13,22 @@
 
 #include "Vcore_v_mcu_wrapper.h"
 
-
 /// \brief A class to wrap a Verilator simulation of a processor.
 ///
 /// We hide the clocking from the user.
 class VSim
 {
- public:
-
+public:
   // Constructors and destructors
-  VSim (const vluint64_t clkPeriodNs,
-	const vluint64_t simTimeNs,
-	const char * vcdFile);
-  VSim (const VSim&) = delete;
-  ~VSim();
+  VSim (const vluint64_t clkPeriodNs, const vluint64_t simTimeNs,
+        const char *vcdFile);
+  VSim (const VSim &) = delete;
+  ~VSim ();
+
+  // Prior to Verilator 4.200, we need to provide access to a timestamp
+#if (VERILATOR_MAJOR < 4) || ((VERILATOR_MAJOR == 4) && (VERILATOR_MINOR < 200))
+  double sc_time_stamp ();
+#endif
 
   // API
   vluint64_t simTimeNs () const;
@@ -45,10 +47,9 @@ class VSim
   bool tms () const;
 
   // Delete the copy assignment operator
-  VSim& operator=(const VSim&) = delete;
+  VSim &operator= (const VSim &) = delete;
 
 private:
-
   /// \brief The verilator simulation context
   std::unique_ptr<VerilatedContext> mContextp;
 
@@ -83,4 +84,4 @@ private:
   bool mTckNegedge;
 };
 
-#endif	// VSIM_H
+#endif // VSIM_H

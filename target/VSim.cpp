@@ -20,21 +20,20 @@ using std::endl;
 ///       periods.
 ///
 /// \param[in] clkPeriodNs    Main clock period in nanoseconds
-/// \param[in] simTimeNs      Time to simulate for.  Zero means simulate
-///                           forever.
+/// \param[in] simTimeNs      Time to simulate for in nanoseconds.  Zero means
+///                           simulate forever.
 /// \param[in] vcdFile        VCD file name for tracing, if any
-VSim::VSim (const vluint64_t clkPeriodNs,
-	    const vluint64_t simTimeNs,
-	    const char * vcdFile)
+VSim::VSim (const vluint64_t clkPeriodNs, const vluint64_t simTimeNs,
+            const char *vcdFile)
 {
-  mContextp.reset(new VerilatedContext);
-  mCpu.reset(new Vcore_v_mcu_wrapper);
+  mContextp.reset (new VerilatedContext);
+  mCpu.reset (new Vcore_v_mcu_wrapper);
 
   // Set up simulation context with 1ns ticks
-  mContextp->timeunit(9);
-  mContextp->timeprecision(9);
-  cout << "Timescale " << mContextp->timeunitString() << " / "
-       << mContextp->timeprecisionString() << endl;
+  mContextp->timeunit (9);
+  mContextp->timeprecision (9);
+  cout << "Timescale " << mContextp->timeunitString () << " / "
+       << mContextp->timeprecisionString () << endl;
 
   // Set up tracing
   mHaveVcd = strlen (vcdFile) > 0;
@@ -42,27 +41,27 @@ VSim::VSim (const vluint64_t clkPeriodNs,
   if (mHaveVcd)
     {
       Verilated::traceEverOn (true);
-      mTfp.reset(new VerilatedVcdC);
-      mCpu->trace (mTfp.get(), 99);
-      mTfp->set_time_unit("1ns");
-      mTfp->set_time_resolution("1ns");
+      mTfp.reset (new VerilatedVcdC);
+      mCpu->trace (mTfp.get (), 99);
+      mTfp->set_time_unit ("1ns");
+      mTfp->set_time_resolution ("1ns");
       mTfp->open (vcdFile);
     }
 
   // Set up clock timings reset and simulation time.  JTAG and reset times are
-  // hard-coded multiples of the clock period.  Easy because we have aslo hard
+  // hard-coded multiples of the clock period.  Easy because we have also hard
   // coded 1 tick = 1ns.
   mClkHalfPeriodTicks = clkPeriodNs / 2;
   mTckHalfPeriodTicks = mClkHalfPeriodTicks * 10;
-  mResetPeriodTicks = mTckHalfPeriodTicks * 5;
+  mResetPeriodTicks = mTckHalfPeriodTicks * 10;
   mSimTimeTicks = simTimeNs;
 
   // Initial clock/reset signal values
   mTickCount = 0;
-  mContextp->time(mTickCount);
+  mContextp->time (mTickCount);
 
   vluint8_t nResetBit = mTickCount < mResetPeriodTicks ? 0 : 1;
-  mContextp->time(mTickCount);
+  mContextp->time (mTickCount);
   mCpu->ref_clk_i = 1U;
   mCpu->rstn_i = nResetBit;
 
@@ -81,11 +80,11 @@ VSim::~VSim ()
   if (mHaveVcd)
     {
       mTfp->close ();
-      mTfp.reset(nullptr);
+      mTfp.reset (nullptr);
     }
 
-  mCpu.reset(nullptr);
-  mContextp.reset(nullptr);
+  mCpu.reset (nullptr);
+  mContextp.reset (nullptr);
 }
 
 /// \brief Getter for the current time in nanoseconds
@@ -110,7 +109,7 @@ bool
 VSim::allDone () const
 {
   return mContextp->gotFinish ()
-    || ((mSimTimeTicks !=0) && (mContextp->time () >= mSimTimeTicks));
+         || ((mSimTimeTicks != 0) && (mContextp->time () >= mSimTimeTicks));
 }
 
 /// \brief Advance one half main clock period
@@ -121,8 +120,7 @@ void
 VSim::advanceHalfPeriod ()
 {
   mTickCount += mClkHalfPeriodTicks;
-  mContextp->time(mTickCount);
-
+  mContextp->time (mTickCount);
   vluint8_t old_tck = mCpu->tck_i;
   vluint8_t nResetBit = mTickCount < mResetPeriodTicks ? 0 : 1;
 

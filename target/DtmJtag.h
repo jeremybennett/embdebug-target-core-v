@@ -17,12 +17,10 @@
 class DtmJtag : public IDtm
 {
 public:
-
   // Constructor and destructor
-  DtmJtag (const uint64_t clkPeriodNs,
-	   const uint64_t simTimeNs,
-	   const char * vcdFile);
-  DtmJtag (const DtmJtag&) = delete;
+  DtmJtag (const uint64_t clkPeriodNs, const uint64_t simTimeNs,
+           const char *vcdFile);
+  DtmJtag (const DtmJtag &) = delete;
   ~DtmJtag ();
 
   // API
@@ -31,39 +29,38 @@ public:
   virtual uint32_t dmiWrite (uint64_t address, uint32_t wdata) override;
 
   // Delete the copy assignment operator
-  DtmJtag& operator=(const DtmJtag&) = delete;
+  DtmJtag &operator= (const DtmJtag &) = delete;
 
 private:
-
   /// \brief Enumeration of the RISC-V JTAG TAP instruction register values
   ///
   /// All 5 bits long, hard-coded here
   enum IrReg
-    {
-     BYPASS0   = 0x00,
-     IDCODE    = 0x01,
-     DTMCS     = 0x10,
-     DMIACCESS = 0x11,
-     BYPASS1   = 0x1f,
-    };
+  {
+    BYPASS0 = 0x00,
+    IDCODE = 0x01,
+    DTMCS = 0x10,
+    DMIACCESS = 0x11,
+    BYPASS1 = 0x1f,
+  };
 
   /// \brief Enumeration of op field when writing
   enum Op
-    {
-     OP_NOP = 0,
-     OP_READ = 1,
-     OP_WRITE = 2,
-     OP_RESERVED = 3,
-    };
+  {
+    OP_NOP = 0,
+    OP_READ = 1,
+    OP_WRITE = 2,
+    OP_RESERVED = 3,
+  };
 
   /// \brief Eneration of op field when reading
   enum Res
-    {
-     RES_OK = 0,
-     RES_RESERVED = 1,
-     RES_ERROR = 2,
-     RES_RETRY = 3,
-    };
+  {
+    RES_OK = 0,
+    RES_RESERVED = 1,
+    RES_ERROR = 2,
+    RES_RETRY = 3,
+  };
 
   /// \brief the JTAG Tap associated with this DTM
   std::unique_ptr<Tap> mTap;
@@ -85,4 +82,4 @@ private:
   uint32_t readDtmcs ();
 };
 
-#endif	// DTM_JTAG_H
+#endif // DTM_JTAG_H

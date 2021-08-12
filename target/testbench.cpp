@@ -29,8 +29,7 @@ using std::setw;
 using std::unique_ptr;
 
 int
-main(int   argc,
-     char *argv[])
+main (int argc, char *argv[])
 {
   unique_ptr<Args> args (new Args (argc, argv));
 
@@ -38,22 +37,25 @@ main(int   argc,
   // derived class we will instantiate.  But we then pass ownership to the
   // DMI, because that is where it belongs.
   unique_ptr<IDtm> dtm (new DtmJtag (args->clkPeriodNs (), args->durationNs (),
-				     args->vcd ().c_str ()));
+                                     args->vcd ().c_str ()));
   unique_ptr<Dmi> dmi (new Dmi (std::move (dtm)));
 
   // Reset the processor
   dmi->dtmReset ();
 
   // Explore the target
-  unique_ptr<Dmi::Dmcontrol> & dmcontrol = dmi->dmcontrol ();
-  unique_ptr<Dmi::Dmstatus> & dmstatus = dmi->dmstatus ();
+  unique_ptr<Dmi::Dmcontrol> &dmcontrol = dmi->dmcontrol ();
+  unique_ptr<Dmi::Dmstatus> &dmstatus = dmi->dmstatus ();
   dmcontrol->reset ();
   dmcontrol->hartselMax ();
   dmcontrol->dmactive (true);
   dmcontrol->write ();
+  dmcontrol->reset ();
+  dmcontrol->read ();
   uint32_t hartselLen = dmcontrol->hartsel ();
   cout << "Max HARTS: 0x" << hex << (hartselLen + 1) << dec << endl;
 
+  cout << "Testing HART availability" << endl << endl;
   uint32_t numHarts;
   for (numHarts = 0; numHarts <= hartselLen; numHarts++)
     {
@@ -63,13 +65,33 @@ main(int   argc,
       dmcontrol->write ();
 
       dmstatus->read ();
+      dmstatus->prettyPrint (false);
+      cout << "Hart " << numHarts << ", dmstatus: 0x" << dmstatus;
+      dmstatus->prettyPrint (true);
+      cout << " " << dmstatus << endl << endl;
+
       if (dmstatus->unavail ())
-	break;
+        break;
     }
 
-  cout << "Num HARTS: " << numHarts << endl;
+  cout << "Num HARTS: " << numHarts << endl << endl;
+
+  // Read the Hartinfo for each hart
+  unique_ptr<Dmi::Hartinfo> &hartinfo = dmi->hartinfo ();
+  for (uint32_t h = 0; h < numHarts; h++)
+    {
+      dmcontrol->reset ();
+      dmcontrol->hartsel (h);
+      dmcontrol->dmactive (true);
+      dmcontrol->write ();
+
+      hartinfo->read ();
+      cout << "Hart " << numHarts << ", hartinfo: 0x" << hartinfo;
+      hartinfo->prettyPrint (true);
+      cout << " " << hartinfo << endl << endl;
+    }
 
   // Delete the DMI, and hence DTM and TAP, which will save the VCD
-  dmi.reset(nullptr);
+  dmi.reset (nullptr);
   return EXIT_SUCCESS;
 }

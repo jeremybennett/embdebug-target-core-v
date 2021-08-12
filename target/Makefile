@@ -26,9 +26,13 @@ MODEL_LIB ?= $(MODEL_DIR)/obj_dir/Vcore_v_mcu_wrapper__ALL.a
 
 CXX := g++
 CPPFLAGS := $(shell pkg-config --cflags verilator) -I$(MODEL_DIR)/obj_dir \
-            -I../vendor/cxxopts-3.0.0rc/include
-CXXFLAGS := -Os -g3
+            -I../vendor/cxxopts-3.0.0rc/include -DVL_TIME_CONTEXT
+CXXFLAGS := -Og -g3
 LDFLAGS :=
+
+CF_STYLE := "{BasedOnStyle: GNU, \
+              AllowShortFunctionsOnASingleLine: InlineOnly, \
+              ColumnLimit: 80}"
 
 OBJS = Args.o Dmi.o DtmJtag.o Tap.o VSim.o testbench.o
 
@@ -38,10 +42,10 @@ all: boot/boot_code.cde testbench.exe
 testbench.exe: $(OBJS) verilated.o verilated_vcd_c.o $(MODEL_LIB)
 	$(CXX) $(LDFLAGS) -o $@ $^
 
-verilated.o: $(VERILATED_SRC) $(VERILATED_DEPS)
+verilated.o: $(VERILATED_SRC) $(VERILATED_DEPS) $(MODEL_LIB)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(VERILATED_SRC)
 
-verilated_vcd_c.o: $(VERILATED_VCD_C_SRC) $(VERILATED_VCD_C_DEPS)
+verilated_vcd_c.o: $(VERILATED_VCD_C_SRC) $(VERILATED_VCD_C_DEPS) $(MODEL_LIB)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(VERILATED_VCD_C_SRC)
 
 boot/boot_code.cde:
@@ -70,6 +74,14 @@ Tap.o: Tap.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 VSim.o: VSim.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+.PHONY: format
+format:
+	for f in $(wildcard *.cpp) $(wildcard *.h); \
+	do \
+		echo $$f; \
+		clang-format -i -style=$(CF_STYLE) $$f; \
+	done
 
 .PHONY: clean
 clean:

@@ -15,12 +15,11 @@
 class Args
 {
 public:
-
   // Constructor and destructor, no default constructor and no copy
   // constructor.
   Args () = delete;
-  Args (int argc, char * argv[]);
-  Args (const Args&) = delete;
+  Args (int argc, char *argv[]);
+  Args (const Args &) = delete;
   ~Args ();
 
   // API calls
@@ -29,10 +28,9 @@ public:
   std::string vcd () const;
 
   // Delete the copy assignment operator
-  Args& operator=(const Args&) = delete;
+  Args &operator= (const Args &) = delete;
 
 private:
-
   /// \brief the Period of the clock in nanoseconds
   uint64_t mClkPeriodNs;
 
@@ -43,4 +41,4 @@ private:
   std::string mVcd;
 };
 
-#endif	// ARGS_H
+#endif // ARGS_H

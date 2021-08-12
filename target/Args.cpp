@@ -9,13 +9,13 @@
 #include <string>
 #include <vector>
 
-#include "cxxopts.hpp"
 #include "Args.h"
+#include "cxxopts.hpp"
 
-using cxxopts::Options;
-using cxxopts::value;
-using cxxopts::ParseResult;
 using cxxopts::OptionException;
+using cxxopts::Options;
+using cxxopts::ParseResult;
+using cxxopts::value;
 using std::cerr;
 using std::cout;
 using std::endl;
@@ -28,17 +28,17 @@ using std::vector;
 ///
 /// \param [in] argc  Number of command line arguments.
 /// \param [in] argv  Vector of the command line arguments.
-Args::Args (int argc, char * argv[])
+Args::Args (int argc, char *argv[])
 {
   Options options ("embdebug-target-core-v", "Embdebug CORE-V target library");
   options.add_options () ("s,mhz", "Clock speed in MHz",
-			  value<double> ()->default_value ("100"), "<speed>");
+                          value<double> ()->default_value ("100"), "<speed>");
   options.add_options () ("d,duration-ns", "Simulation duration in nanoseconds",
-			  value<uint64_t> ()->default_value ("0"), "<time>");
+                          value<uint64_t> ()->default_value ("0"), "<time>");
   options.add_options () ("vcd", "Verilog Change Dump file name",
-			  value<string> ()->default_value (""), "<filename>");
-  options.add_options() ("h,help", "Produce help message and exit");
-  options.add_options() ("v,version", "Produce version message and exit");
+                          value<string> ()->default_value (""), "<filename>");
+  options.add_options () ("h,help", "Produce help message and exit");
+  options.add_options () ("v,version", "Produce version message and exit");
 
   ParseResult res;
   try
@@ -47,8 +47,8 @@ Args::Args (int argc, char * argv[])
     }
   catch (OptionException &e)
     {
-      cerr << "ERROR: unable to parse arguments:" << e.what() << endl;
-      cerr << options.help();
+      cerr << "ERROR: unable to parse arguments:" << e.what () << endl;
+      cerr << options.help ();
       exit (EXIT_FAILURE);
     }
 
@@ -72,7 +72,7 @@ Args::Args (int argc, char * argv[])
       exit (EXIT_FAILURE);
     }
 
-  mClkPeriodNs = static_cast<uint64_t> (500.0 / mhzVal);
+  mClkPeriodNs = static_cast<uint64_t> (1000.0 / mhzVal);
 
   mDurationNs = res["duration-ns"].as<uint64_t> ();
 
@@ -81,12 +81,12 @@ Args::Args (int argc, char * argv[])
   // If the filename does not end in .vcd or .VCD, then add the suffix.
   if (mVcd.size () > 4)
     {
-        vector<string> keys = {".vcd", ".VCD"};
-        for (auto const &k : keys)
+      vector<string> keys = { ".vcd", ".VCD" };
+      for (auto const &k : keys)
         {
-            std::size_t end_pos = mVcd.size() - k.size();
-            if (mVcd.rfind(k, end_pos) == end_pos)
-	      return;
+          std::size_t end_pos = mVcd.size () - k.size ();
+          if (mVcd.rfind (k, end_pos) == end_pos)
+            return;
         }
     }
 
