@@ -110,8 +110,14 @@ DtmJtag::dmiRead (uint64_t address)
   reg |= (address & mDmiAddrMask) << 34;
   mTap->writeReg (static_cast<uint8_t> (DMIACCESS), reg, mDmiWidth);
 
-  do
-    reg = mTap->readReg (static_cast<uint8_t> (DMIACCESS), mDmiWidth);
+  while (true)
+    {
+      reg = mTap->readReg (static_cast<uint8_t> (DMIACCESS), mDmiWidth);
+      if ((reg & 0x3ULL) == static_cast<uint64_t> (RES_RETRY))
+	writeDtmcs (0x10000);	// dmireset
+      else
+	break;
+    }
   while ((reg & 0x3ULL) == static_cast<uint64_t> (RES_RETRY));
 
   if ((reg & 0x3ULL) != static_cast<uint64_t> (RES_OK))
@@ -138,9 +144,14 @@ DtmJtag::dmiWrite (uint64_t address, uint32_t wdata)
   reg |= (address & mDmiAddrMask) << 34;
   mTap->writeReg (static_cast<uint8_t> (DMIACCESS), reg, mDmiWidth);
 
-  do
-    reg = mTap->readReg (static_cast<uint8_t> (DMIACCESS), mDmiWidth);
-  while ((reg & 0x3ULL) == static_cast<uint64_t> (RES_RETRY));
+  while (true)
+    {
+      reg = mTap->readReg (static_cast<uint8_t> (DMIACCESS), mDmiWidth);
+      if ((reg & 0x3ULL) == static_cast<uint64_t> (RES_RETRY))
+	writeDtmcs (0x10000);	// dmireset
+      else
+	break;
+    }
 
   if ((reg & 0x3ULL) != static_cast<uint64_t> (RES_OK))
     cerr << "Warning: unknown JTAG write result " << (reg & 0x3ULL)
