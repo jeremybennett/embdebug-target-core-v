@@ -11,7 +11,7 @@
 #include "verilated.h"
 #include <verilated_vcd_c.h>
 
-#include "Vcore_v_mcu_wrapper.h"
+#include "Vcore_v_mcu.h"
 
 /// \brief A class to wrap a Verilator simulation of a processor.
 ///
@@ -60,7 +60,7 @@ private:
   std::unique_ptr<VerilatedVcdC> mTfp;
 
   /// \brief Verilator model
-  std::unique_ptr<Vcore_v_mcu_wrapper> mCpu;
+  std::unique_ptr<Vcore_v_mcu> mCpu;
 
   /// \brief Half period of the main clock in ticks
   vluint64_t mClkHalfPeriodTicks;

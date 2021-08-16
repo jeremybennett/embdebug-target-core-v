@@ -232,7 +232,7 @@ Tap::gotoState (const Tap::State s)
   // A table showing the TMS value for the first step for getting for the
   // state of the first argument, to the state of the second argument.
   static const uint8_t nextStateTab[NUM_STATES][NUM_STATES] =
-      //   TLR                     UDR
+      //  TLR                     UDR
       {
         { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
           0 }, // Test-Logic-Reset ->

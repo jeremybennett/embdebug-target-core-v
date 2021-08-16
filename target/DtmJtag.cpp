@@ -88,6 +88,8 @@ DtmJtag::reset ()
   cout << ", version = " << (dtmcs & 0xf);
   cout << ", addr mask = " << Utils::hexStr (mDmiAddrMask, 8) << "]" << endl;
 
+  // Reset the DMI
+  writeDtmcs (0x20000);			// dmihardreset
   return true; // Reset completed.
 }
 

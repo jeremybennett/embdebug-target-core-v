@@ -22,7 +22,7 @@ VERILATED_VCD_C_DEPS ::= $(VINCDIR)/verilated_vcd_c.cpp \
 
 MCU_DIR := $(HOME)/gittrees/openhw/core-v-mcu
 MODEL_DIR ?= $(MCU_DIR)/build/openhwgroup.org_systems_core-v-mcu_0/model-lib-verilator
-MODEL_LIB ?= $(MODEL_DIR)/obj_dir/Vcore_v_mcu_wrapper__ALL.a
+MODEL_LIB ?= $(MODEL_DIR)/obj_dir/Vcore_v_mcu__ALL.a
 
 CXX := g++
 CPPFLAGS := $(shell pkg-config --cflags verilator) -I$(MODEL_DIR)/obj_dir \

@@ -27,7 +27,7 @@ VSim::VSim (const vluint64_t clkPeriodNs, const vluint64_t simTimeNs,
             const char *vcdFile)
 {
   mContextp.reset (new VerilatedContext);
-  mCpu.reset (new Vcore_v_mcu_wrapper);
+  mCpu.reset (new Vcore_v_mcu);
 
   // Set up simulation context with 1ns ticks
   mContextp->timeunit (9);
@@ -65,8 +65,8 @@ VSim::VSim (const vluint64_t clkPeriodNs, const vluint64_t simTimeNs,
   mCpu->ref_clk_i = 1U;
   mCpu->rstn_i = nResetBit;
 
-  mCpu->tck_i = 1U;
-  mCpu->trst_i = nResetBit;
+  mCpu->jtag_tck_i = 1U;
+  mCpu->jtag_trst_i = nResetBit;
   mTckPosedge = true;
   mTckNegedge = false;
 }
@@ -121,17 +121,17 @@ VSim::advanceHalfPeriod ()
 {
   mTickCount += mClkHalfPeriodTicks;
   mContextp->time (mTickCount);
-  vluint8_t old_tck = mCpu->tck_i;
+  vluint8_t old_tck = mCpu->jtag_tck_i;
   vluint8_t nResetBit = mTickCount < mResetPeriodTicks ? 0 : 1;
 
   mCpu->ref_clk_i = 1U - (mTickCount / mClkHalfPeriodTicks) % 2;
   mCpu->rstn_i = nResetBit;
 
-  mCpu->tck_i = 1U - (mTickCount / mTckHalfPeriodTicks) % 2;
-  mCpu->trst_i = nResetBit;
+  mCpu->jtag_tck_i = 1U - (mTickCount / mTckHalfPeriodTicks) % 2;
+  mCpu->jtag_trst_i = nResetBit;
 
-  mTckPosedge = (old_tck == 0U) && (mCpu->tck_i == 1U);
-  mTckNegedge = (old_tck == 1U) && (mCpu->tck_i == 0U);
+  mTckPosedge = (old_tck == 0U) && (mCpu->jtag_tck_i == 1U);
+  mTckNegedge = (old_tck == 1U) && (mCpu->jtag_tck_i == 0U);
 }
 
 /// \brief Determine if the model is in reset
@@ -191,7 +191,7 @@ VSim::eval ()
 void
 VSim::tdi (const bool tdi_)
 {
-  mCpu->tdi_i = tdi_ ? 1U : 0U;
+  mCpu->jtag_tdi_i = tdi_ ? 1U : 0U;
 }
 
 /// \brief Getter for the TDI input port
@@ -204,7 +204,7 @@ VSim::tdi (const bool tdi_)
 bool
 VSim::tdi () const
 {
-  return mCpu->tdi_i != 0U;
+  return mCpu->jtag_tdi_i != 0U;
 }
 
 /// \brief Getter for the TDO output port
@@ -218,7 +218,7 @@ VSim::tdi () const
 bool
 VSim::tdo () const
 {
-  return mCpu->tdo_o != 0U;
+  return mCpu->jtag_tdo_o != 0U;
 }
 
 /// \brief Setter for the TDI input port
@@ -229,7 +229,7 @@ VSim::tdo () const
 void
 VSim::tms (const bool tms_)
 {
-  mCpu->tms_i = tms_ ? 1U : 0U;
+  mCpu->jtag_tms_i = tms_ ? 1U : 0U;
 }
 
 /// \brief Getter for the TMS input port
@@ -240,5 +240,5 @@ VSim::tms (const bool tms_)
 bool
 VSim::tms () const
 {
-  return mCpu->tms_i != 0U;
+  return mCpu->jtag_tms_i != 0U;
 }
