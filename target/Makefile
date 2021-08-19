@@ -27,14 +27,14 @@ MODEL_LIB ?= $(MODEL_DIR)/obj_dir/Vcore_v_mcu_wrapper__ALL.a
 CXX := g++
 CPPFLAGS := $(shell pkg-config --cflags verilator) -I$(MODEL_DIR)/obj_dir \
             -I../vendor/cxxopts-3.0.0rc/include -DVL_TIME_CONTEXT
-CXXFLAGS := -Og -g3
+CXXFLAGS := -O0 -g3
 LDFLAGS :=
 
 CF_STYLE := "{BasedOnStyle: GNU, \
               AllowShortFunctionsOnASingleLine: InlineOnly, \
               ColumnLimit: 80}"
 
-OBJS = Args.o Dmi.o DtmJtag.o Tap.o VSim.o testbench.o
+OBJS = Args.o Dmi.o DtmJtag.o Tap.o Utils.o VSim.o testbench.o
 
 .PHONY: all
 all: boot/boot_code.cde testbench.exe
@@ -58,6 +58,7 @@ Args.o: Args.h
 Dmi.o: Dmi.h
 DtmJtag.o: IDtm.h DtmJtag.h Tap.h
 Tap.o: Tap.h VSim.h
+Utils.o: Utils.h
 VSim.o: VSim.h
 
 # Object dependencies
@@ -71,6 +72,8 @@ Dmi.o: Dmi.cpp
 DtmJtag.o: DtmJtag.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 Tap.o: Tap.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+Utils.o: Utils.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 VSim.o: VSim.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<

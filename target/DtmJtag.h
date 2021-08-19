@@ -80,6 +80,7 @@ private:
   // Helper methods
   uint32_t readIdcode ();
   uint32_t readDtmcs ();
+  void writeDtmcs (const uint32_t val);
 };
 
 #endif // DTM_JTAG_H

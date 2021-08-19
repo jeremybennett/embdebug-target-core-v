@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include "DtmJtag.h"
+#include "Utils.h"
 
 using std::cerr;
 using std::cout;
@@ -71,29 +72,21 @@ DtmJtag::reset ()
   mDmiAddrMask = ~((~0ULL) << addrSize);
 
   // Log data
-  cout << "IDCODE = 0x" << setw (8) << setfill ('0') << hex << idcode << dec
-       << setfill (' ') << setw (0) << endl;
-  cout << "  Version:  0x" << setw (1) << setfill ('0') << hex << (idcode >> 28)
-       << dec << setfill (' ') << setw (0) << endl;
-  cout << "  Part #:   0x" << setw (4) << setfill ('0') << hex
-       << ((idcode >> 12) & 0xffff) << dec << setfill (' ') << setw (0) << endl;
-  cout << "  Manuf ID: 0x" << setw (3) << setfill ('0') << hex
-       << ((idcode >> 1) & 0x7ff) << dec << setfill (' ') << setw (0) << endl;
-  cout << "    JEP106 ID:      0x" << setw (2) << setfill ('0') << hex
-       << ((idcode >> 1) & 0x7f) << dec << setfill (' ') << setw (0) << endl;
-  cout << "    Continuation #: 0x" << setw (1) << setfill ('0') << hex
-       << ((idcode >> 8) & 0xf) << dec << setfill (' ') << setw (0) << endl;
+  cout << "IDCODE = 0x" << Utils::hexStr (idcode);
+  cout << " [version = 0x" << ((idcode >> 28) & 0xf);
+  cout << ", part # =  0x" << Utils::hexStr ((idcode >> 12) & 0xffff, 4);
+  cout << ", manuf ID: 0x" << Utils::hexStr ((idcode >> 1) & 0x7ff, 3);
+  cout << " [JEP106 ID = 0x" << Utils::hexStr ((idcode >> 1) & 0x7f, 2);
+  cout << ", continuation # = " << ((idcode >> 8) & 0xf) << "]]" << endl;
 
-  cout << "DTMCS = 0x" << setw (8) << setfill ('0') << hex << dtmcs << dec
-       << setfill (' ') << setw (0) << endl;
-  cout << "  dmihardreset: " << ((dtmcs >> 17) & 0x1) << endl;
-  cout << "  dmireset:     " << ((dtmcs >> 16) & 0x1) << endl;
-  cout << "  idle:         " << ((dtmcs >> 12) & 0x7) << endl;
-  cout << "  dmistat:      " << ((dtmcs >> 10) & 0x3) << endl;
-  cout << "  abits:        " << static_cast<uint32_t> (addrSize) << endl;
-  cout << "  version:      " << (dtmcs & 0xf) << endl;
-  cout << "  Addr mask:    0x" << setw (16) << setfill ('0') << hex
-       << mDmiAddrMask << dec << setfill (' ') << setw (0) << endl;
+  cout << "DTMCS = 0x" << Utils::hexStr (dtmcs);
+  cout << " [dmihardreset = " << Utils::nonZero ((dtmcs >> 17) & 0x1);
+  cout << ", dmireset = " << Utils::nonZero ((dtmcs >> 16) & 0x1);
+  cout << ", idle = " << ((dtmcs >> 12) & 0x7);
+  cout << ", dmistat = " << ((dtmcs >> 10) & 0x3);
+  cout << ", abits = " << static_cast<uint32_t> (addrSize);
+  cout << ", version = " << (dtmcs & 0xf);
+  cout << ", addr mask = " << Utils::hexStr (mDmiAddrMask, 8) << "]" << endl;
 
   return true; // Reset completed.
 }
@@ -114,11 +107,12 @@ DtmJtag::dmiRead (uint64_t address)
     {
       reg = mTap->readReg (static_cast<uint8_t> (DMIACCESS), mDmiWidth);
       if ((reg & 0x3ULL) == static_cast<uint64_t> (RES_RETRY))
-	writeDtmcs (0x10000);	// dmireset
+        writeDtmcs (0x10000); // dmireset
       else
-	break;
+        break;
     }
-  while ((reg & 0x3ULL) == static_cast<uint64_t> (RES_RETRY));
+  while ((reg & 0x3ULL) == static_cast<uint64_t> (RES_RETRY))
+    ;
 
   if ((reg & 0x3ULL) != static_cast<uint64_t> (RES_OK))
     cerr << "Warning: unknown JTAG read result " << (reg & 0x3ULL)
@@ -148,9 +142,9 @@ DtmJtag::dmiWrite (uint64_t address, uint32_t wdata)
     {
       reg = mTap->readReg (static_cast<uint8_t> (DMIACCESS), mDmiWidth);
       if ((reg & 0x3ULL) == static_cast<uint64_t> (RES_RETRY))
-	writeDtmcs (0x10000);	// dmireset
+        writeDtmcs (0x10000); // dmireset
       else
-	break;
+        break;
     }
 
   if ((reg & 0x3ULL) != static_cast<uint64_t> (RES_OK))
@@ -180,4 +174,15 @@ uint32_t
 DtmJtag::readDtmcs ()
 {
   return mTap->readReg (static_cast<uint8_t> (DTMCS), 32);
+}
+
+/// \brief Write the DTM Control and Status register.
+///
+/// Only the dmihardreset and dmireset have meaning.
+///
+/// \param[in] val  The value to write in the DTMCS register.
+void
+DtmJtag::writeDtmcs (const uint32_t val)
+{
+  mTap->writeReg (static_cast<uint8_t> (DTMCS), val, 32);
 }

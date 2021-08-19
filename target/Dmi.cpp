@@ -10,6 +10,7 @@
 #include <sstream>
 
 #include "Dmi.h"
+#include "Utils.h"
 
 using std::cerr;
 using std::cout;
@@ -303,8 +304,8 @@ Dmi::Data::data (const size_t n) const
 
 /// Set the value the specified \c data register.
 ///
-/// \param[in] n         Index of the \c data register to get.
-/// \param[in] dataValy  The value to be set in the specified \c data register.
+/// \param[in] n        Index of the \c data register to get.
+/// \param[in] dataVal  The value to be set in the specified \c data register.
 void
 Dmi::Data::data (const size_t n, const uint32_t dataVal)
 {
@@ -1188,7 +1189,7 @@ Dmi::Abstractcs::progbufsize () const
 bool
 Dmi::Abstractcs::busy () const
 {
-  return (mAbstractcsReg & PROGBUFSIZE_MASK) != 0;
+  return (mAbstractcsReg & BUSY_MASK) != 0;
 }
 
 /// \brief Get the \c cmderr bits of \c abstractcs
@@ -1299,13 +1300,28 @@ Dmi::Command::prettyPrint (const bool flag)
 
 /// \brief Set the \c cmdtype bits of \c command
 ///
-/// \param[in] cmdtypeVal  The value of \c cmdType to set.
+/// \param[in] cmdtypeVal  The value of \c cmdType to set.  Permitted values
+///                        are \c ACCESS_REG (0), \c QUICK_ACCESS (1) or
+///                        \c ACCESS_MEM (2). Any other value is ignored with
+///                        a warning.
 void
-Dmi::Command::cmdtype (const uint8_t cmdtypeVal)
+Dmi::Command::cmdtype (const Dmi::Command::CmdtypeEnum cmdtypeVal)
 {
-  mCommandReg &= ~CMDTYPE_MASK;
-  mCommandReg
-      |= (static_cast<uint32_t> (cmdtypeVal) << CMDTYPE_OFFSET) & CMDTYPE_MASK;
+  switch (cmdtypeVal)
+    {
+    case ACCESS_REG:
+    case QUICK_ACCESS:
+    case ACCESS_MEM:
+      mCommandReg &= ~CMDTYPE_MASK;
+      mCommandReg |= (static_cast<uint32_t> (cmdtypeVal) << CMDTYPE_OFFSET)
+                     & CMDTYPE_MASK;
+      return;
+
+    default:
+      cerr << "Warning: " << cmdtypeVal
+           << " not valid for cmdtype field: ignored" << endl;
+      return;
+    }
 }
 
 /// \brief Set the \c control bits of \c command
@@ -1322,6 +1338,147 @@ Dmi::Command::control (const uint32_t controlVal)
   mCommandReg &= ~CONTROL_MASK;
   mCommandReg
       |= (static_cast<uint32_t> (controlVal) << CONTROL_OFFSET) & CONTROL_MASK;
+}
+
+/// \brief Set the \c aamvirtual bit for the \c command \c control field.
+///
+/// \param[in] flag  \c true if the bit is to be set, false otherwise.
+void
+Dmi::Command::aamvirtual (bool flag)
+{
+  if (flag)
+    mCommandReg |= AAMVIRTUAL_MASK;
+  else
+    mCommandReg &= ~AAMVIRTUAL_MASK;
+}
+
+/// \brief Set the \c aarsize bits for the \c command \c control field.
+///
+/// \param[in] aarsizeval  The value to be set, permitted values are
+///                       \c ACCESS32 (2), \c ACCESS32 (3) or \c ACCESS32 (4).
+///                       Any other value is ignored with a warning.
+void
+Dmi::Command::aarsize (const Dmi::Command::AasizeEnum aarsizeVal)
+{
+  switch (aarsizeVal)
+    {
+    case ACCESS32:
+    case ACCESS64:
+    case ACCESS128:
+      mCommandReg &= AARSIZE_MASK;
+      mCommandReg != static_cast<uint32_t> (aarsizeVal) << AARSIZE_OFFSET;
+      return;
+
+    default:
+      cerr << "Warning: " << aarsizeVal
+           << " not valid for aarsize field: ignored" << endl;
+      return;
+    }
+}
+
+/// \brief Set the \c aamsize bits for the \c command \c control field.
+///
+/// \param[in] aamsizeval  The value to be set, permitted values are
+///                       \c ACCESS8 (0), \c ACCESS16 (1), \c ACCESS32 (2),
+///                       \c ACCESS32 (3) or \c ACCESS32 (4).  Any other value
+///                       is ignored with a warning.
+void
+Dmi::Command::aamsize (const Dmi::Command::AasizeEnum aamsizeVal)
+{
+  switch (aamsizeVal)
+    {
+    case ACCESS8:
+    case ACCESS16:
+    case ACCESS32:
+    case ACCESS64:
+    case ACCESS128:
+      mCommandReg &= AAMSIZE_MASK;
+      mCommandReg != static_cast<uint32_t> (aamsizeVal) << AAMSIZE_OFFSET;
+      return;
+
+    default:
+      cerr << "Warning: " << aamsizeVal
+           << " not valid for aamsize field: ignored" << endl;
+      return;
+    }
+}
+
+/// \brief Set the \c postincrement bit for the \c command \c control field.
+///
+/// \param[in] flag  \c true if the bit is to be set, false otherwise.
+void
+Dmi::Command::aapostincrement (const bool flag)
+{
+  if (flag)
+    mCommandReg |= AAPOSTINCREMENT_MASK;
+  else
+    mCommandReg &= ~AAPOSTINCREMENT_MASK;
+}
+
+/// \brief Set the \c postexec bit for the \c command \c control field.
+///
+/// \param[in] flag  \c true if the bit is to be set, false otherwise.
+void
+Dmi::Command::aapostexec (const bool flag)
+{
+  if (flag)
+    mCommandReg |= POSTEXEC_MASK;
+  else
+    mCommandReg &= ~POSTEXEC_MASK;
+}
+
+/// \brief Set the \c transfer bit for the \c command \c control field.
+///
+/// \param[in] flag  \c true if the bit is to be set, false otherwise.
+void
+Dmi::Command::aatransfer (const bool flag)
+{
+  if (flag)
+    mCommandReg |= TRANSFER_MASK;
+  else
+    mCommandReg &= ~TRANSFER_MASK;
+}
+
+/// \brief Set the \c write bit for the \c command \c control field.
+///
+/// \param[in] flag  \c true if the bit is to be set, false otherwise.
+void
+Dmi::Command::aawrite (const bool flag)
+{
+  if (flag)
+    mCommandReg |= WRITE_MASK;
+  else
+    mCommandReg &= ~WRITE_MASK;
+}
+
+/// \brief Set the \c target-specific bits for the \c command \c control
+///        field.
+///
+/// \param[in] value  The value to be set. Must be in the range 0-3.
+void
+Dmi::Command::aatargetSpecific (uint8_t val)
+{
+  if (val > 3)
+    {
+      cerr << "Warning: " << val
+           << " too large for target-specific field: ignored" << endl;
+      return;
+    }
+  else
+    {
+      mCommandReg &= ~TARGET_SPECIFIC_MASK;
+      mCommandReg |= static_cast<uint32_t> (val) << TARGET_SPECIFIC_OFFSET;
+    }
+}
+
+/// \brief Set the \c regno bits for the \c command \c control field.
+///
+/// \param[in] value  The value to be set.
+void
+Dmi::Command::aaregno (uint16_t val)
+{
+  mCommandReg &= ~REGNO_MASK;
+  mCommandReg |= static_cast<uint32_t> (val) << REGNO_OFFSET;
 }
 
 /// \brief Output operator for the Dmi::Command class

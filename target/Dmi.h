@@ -574,6 +574,22 @@ public:
   class Command
   {
   public:
+    enum CmdtypeEnum
+    {
+      ACCESS_REG = 0,
+      QUICK_ACCESS = 1,
+      ACCESS_MEM = 2,
+    };
+
+    enum AasizeEnum
+    {
+      ACCESS8 = 0,
+      ACCESS16 = 1,
+      ACCESS32 = 2,
+      ACCESS64 = 3,
+      ACCESS128 = 4,
+    };
+
     // Constructors & destructor
     Command () = delete;
     Command (std::unique_ptr<IDtm> &dtm_);
@@ -586,8 +602,17 @@ public:
     void reset ();
     void write ();
     void prettyPrint (const bool flag);
-    void cmdtype (const uint8_t cmdtypeVal);
+    void cmdtype (const CmdtypeEnum cmdtypeVal);
     void control (const uint32_t controlVal);
+    void aamvirtual (bool flag);
+    void aarsize (const AasizeEnum aarsizeVal);
+    void aamsize (const AasizeEnum aamsizeVal);
+    void aapostincrement (const bool flag);
+    void aapostexec (const bool flag);
+    void aatransfer (const bool flag);
+    void aawrite (const bool flag);
+    void aatargetSpecific (uint8_t val);
+    void aaregno (uint16_t val);
 
     // Output operator is a friend
     friend std::ostream &operator<< (std::ostream &s,
@@ -599,6 +624,15 @@ public:
     {
       CMDTYPE_MASK = 0xff000000,
       CONTROL_MASK = 0x00ffffff,
+      AAMVIRTUAL_MASK = 0x00800000,
+      AARSIZE_MASK = 0x00700000,
+      AAMSIZE_MASK = 0x00700000,
+      AAPOSTINCREMENT_MASK = 0x00080000,
+      POSTEXEC_MASK = 0x00040000,
+      TRANSFER_MASK = 0x00020000,
+      WRITE_MASK = 0x00010000,
+      TARGET_SPECIFIC_MASK = 0x0000c000,
+      REGNO_MASK = 0x0000ffff,
     };
 
     /// \brief Offsets for flag bits in \c command
@@ -608,6 +642,15 @@ public:
     {
       CMDTYPE_OFFSET = 24,
       CONTROL_OFFSET = 0,
+      AAMVIRTUAL_OFFSET = 23,
+      AARSIZE_OFFSET = 20,
+      AAMSIZE_OFFSET = 20,
+      AAPOSTINCREMENT_OFFSET = 19,
+      POSTEXEC_OFFSET = 18,
+      TRANSFER_OFFSET = 17,
+      WRITE_OFFSET = 16,
+      TARGET_SPECIFIC_OFFSET = 14,
+      REGNO_OFFSET = 0,
     };
 
     /// \brief Sizes of flag bits in \c command
@@ -617,6 +660,15 @@ public:
     {
       CMDTYPE_SIZE = 8,
       CONTROL_SIZE = 24,
+      AAMVIRTUAL_SIZE = 1,
+      AARSIZE_SIZE = 3,
+      AAMSIZE_SIZE = 1,
+      AAPOSTINCREMENT_SIZE = 1,
+      POSTEXEC_SIZE = 1,
+      TRANSFER_SIZE = 1,
+      WRITE_SIZE = 1,
+      TARGET_SPECIFIC_SIZE = 2,
+      REGNO_SIZE = 16,
     };
 
     /// \brief The address of the \c command register in the DMI.
