@@ -11,6 +11,8 @@
 /// engagement with the Verilator model is the model of the JTAG TAP, and thus
 /// the Verilator model sits underneath this.
 
+/// \note This version is only to illustrate an issue with FP CSR access.
+
 #include <iostream>
 #include <sstream>
 
@@ -644,7 +646,6 @@ main (int argc, char *argv[])
   // PC
   cout << "PC = 0x" << Utils::hexStr (readCsr (dmi, DPC)) << endl << endl;
 
-#if 0
   // Read sequence of regs to demonsrate danger of FPU access
   cout << "cycle = 0x" << Utils::hexStr (readCsr (dmi, CYCLE)) << endl;
   cout << "instret = 0x" << Utils::hexStr (readCsr (dmi, INSTRET)) << endl;
@@ -654,81 +655,6 @@ main (int argc, char *argv[])
   cout << "cycle = 0x" << Utils::hexStr (readCsr (dmi, CYCLE)) << endl;
   cout << "instret = 0x" << Utils::hexStr (readCsr (dmi, INSTRET)) << endl;
   cout << "PC = 0x" << Utils::hexStr (readCsr (dmi, DPC)) << endl << endl;
-#endif
-
-  // GPRs
-  for (size_t r = 0; r < 0x20; r++)
-    cout << "GPR " << abiName (r) << " (x" << r << ") = 0x"
-         << Utils::hexStr (readGpr (dmi, r)) << endl;
-  cout << endl;
-
-  // Writing GPRs and reading back
-  for (size_t r = 0; r < 0x20; r++)
-    {
-      writeGpr (dmi, r, 0xdeadbeef);
-      cout << "GPR " << abiName (r) << " (x" << r << ") = 0x"
-           << Utils::hexStr (readGpr (dmi, r)) << endl;
-      writeGpr (dmi, r, 0x00000000);
-      cout << "GPR " << abiName (r) << " (x" << r << ") = 0x"
-           << Utils::hexStr (readGpr (dmi, r)) << endl;
-      writeGpr (dmi, r, 0xffffffff);
-      cout << "GPR " << abiName (r) << " (x" << r << ") = 0x"
-           << Utils::hexStr (readGpr (dmi, r)) << endl;
-    }
-
-  // FPRs (for now disabled, should be based on MISA indication of FPU
-  // availability).
-  if (false)
-    {
-      for (size_t r = 0; r < 0x20; r++)
-        {
-          cout << "FPR " << abiName (0x20 + r) << " (f" << r << ") = 0x"
-               << Utils::hexStr (readFpr (dmi, r)) << endl;
-        }
-      cout << endl;
-    }
-
-  // Standard user CSRs
-  size_t numCsrs = sizeof (userCsrList) / sizeof (userCsrList[0]);
-
-  for (size_t i = 0; i < numCsrs; i++)
-    if (userCsrList[i].type == ANY)
-      {
-        uint32_t val = readCsr (dmi, userCsrList[i].addr);
-        if (val != 0)
-          cout << "Standard user CSR " << userCsrList[i].name << "(0x"
-               << Utils::hexStr (userCsrList[i].addr, 3) << ") = 0x"
-               << Utils::hexStr (val) << endl;
-      }
-  cout << endl;
-
-  // Standard custom user CSRs
-  numCsrs = sizeof (userCustomCsrList) / sizeof (userCustomCsrList[0]);
-
-  for (size_t i = 0; i < numCsrs; i++)
-    if (userCustomCsrList[i].type == ANY)
-      {
-        uint32_t val = readCsr (dmi, userCustomCsrList[i].addr);
-        if (val != 0)
-          cout << "Standard custom user CSR " << userCustomCsrList[i].name
-               << "(0x" << Utils::hexStr (userCustomCsrList[i].addr, 3)
-               << ") = 0x" << Utils::hexStr (val) << endl;
-      }
-  cout << endl;
-
-  // Standard machine CSRs
-  numCsrs = sizeof (machineCsrList) / sizeof (machineCsrList[0]);
-
-  for (size_t i = 0; i < numCsrs; i++)
-    if (machineCsrList[i].type == ANY)
-      {
-        uint32_t val = readCsr (dmi, machineCsrList[i].addr);
-        if (val != 0)
-          cout << "Standard machine CSR " << machineCsrList[i].name << "(0x"
-               << Utils::hexStr (machineCsrList[i].addr, 3) << ") = 0x"
-               << Utils::hexStr (val) << endl;
-      }
-  cout << endl;
 
   // Delete the DMI, and hence DTM and TAP, which will save the VCD
   dmi.reset (nullptr);
