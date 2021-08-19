@@ -85,9 +85,26 @@ Utils::hexStr (const uint64_t val, const size_t len)
   return oss.str ();
 }
 
-/// \brief String representation of boolean values
+/// \brief String representation of booleans.
 ///
-/// \param[in] val  Value to analyze
+/// \param[in] flag  Value to represent.
+/// \return \c "true if \p flag is true, \c "false" otherwise.
+string
+Utils::boolStr (bool flag)
+{
+  oss.str ("");
+
+  if (flag)
+    oss << "true";
+  else
+    oss << "false";
+
+  return oss.str ();
+}
+
+/// \brief String representation of numbers as boolean values.
+///
+/// \param[in] val  Value to represent.
 /// \return  \c "true" if \p val is non-zero, \c "false" otherwise.
 string
 Utils::nonZero (uint64_t val)

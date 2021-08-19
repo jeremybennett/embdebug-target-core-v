@@ -25,7 +25,7 @@ public:
   // Core API
   virtual bool reset () = 0;
   virtual uint32_t dmiRead (uint64_t address) = 0;
-  virtual uint32_t dmiWrite (uint64_t address, uint32_t wdata) = 0;
+  virtual void dmiWrite (uint64_t address, uint32_t wdata) = 0;
 
   // Delete the copy assignment operator
   IDtm &operator= (const IDtm &) = delete;

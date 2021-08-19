@@ -644,18 +644,6 @@ main (int argc, char *argv[])
   // PC
   cout << "PC = 0x" << Utils::hexStr (readCsr (dmi, DPC)) << endl << endl;
 
-#if 0
-  // Read sequence of regs to demonsrate danger of FPU access
-  cout << "cycle = 0x" << Utils::hexStr (readCsr (dmi, CYCLE)) << endl;
-  cout << "instret = 0x" << Utils::hexStr (readCsr (dmi, INSTRET)) << endl;
-  cout << "PC = 0x" << Utils::hexStr (readCsr (dmi, DPC)) << endl << endl;
-
-  cout << "fflags = 0x" << Utils::hexStr (readCsr (dmi, FFLAGS)) << endl;
-  cout << "cycle = 0x" << Utils::hexStr (readCsr (dmi, CYCLE)) << endl;
-  cout << "instret = 0x" << Utils::hexStr (readCsr (dmi, INSTRET)) << endl;
-  cout << "PC = 0x" << Utils::hexStr (readCsr (dmi, DPC)) << endl << endl;
-#endif
-
   // GPRs
   for (size_t r = 0; r < 0x20; r++)
     cout << "GPR " << abiName (r) << " (x" << r << ") = 0x"
@@ -667,13 +655,11 @@ main (int argc, char *argv[])
     {
       writeGpr (dmi, r, 0xdeadbeef);
       cout << "GPR " << abiName (r) << " (x" << r << ") = 0x"
-           << Utils::hexStr (readGpr (dmi, r)) << endl;
+           << Utils::hexStr (readGpr (dmi, r));
       writeGpr (dmi, r, 0x00000000);
-      cout << "GPR " << abiName (r) << " (x" << r << ") = 0x"
-           << Utils::hexStr (readGpr (dmi, r)) << endl;
+      cout << ", 0x" << Utils::hexStr (readGpr (dmi, r));
       writeGpr (dmi, r, 0xffffffff);
-      cout << "GPR " << abiName (r) << " (x" << r << ") = 0x"
-           << Utils::hexStr (readGpr (dmi, r)) << endl;
+      cout << ", 0x" << Utils::hexStr (readGpr (dmi, r)) << endl;
     }
 
   // FPRs (for now disabled, should be based on MISA indication of FPU

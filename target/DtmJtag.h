@@ -26,7 +26,7 @@ public:
   // API
   bool reset () override;
   virtual uint32_t dmiRead (uint64_t address) override;
-  virtual uint32_t dmiWrite (uint64_t address, uint32_t wdata) override;
+  virtual void dmiWrite (uint64_t address, uint32_t wdata) override;
 
   // Delete the copy assignment operator
   DtmJtag &operator= (const DtmJtag &) = delete;

@@ -277,7 +277,7 @@ void
 Dmi::Data::write (const size_t n)
 {
   if (n < NUM_REGS)
-    mDataReg[n] = mDtm->dmiWrite (DMI_ADDR[n], mDataReg[n]);
+    mDtm->dmiWrite (DMI_ADDR[n], mDataReg[n]);
   else
     cerr << "Warning: writing data[" << n << "] invalid: ignored." << endl;
 }
@@ -323,17 +323,12 @@ Dmi::Data::data (const size_t n, const uint32_t dataVal)
 std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Data> &p)
 {
-  std::ostringstream oss;
-  oss << "[" << hex << setw (8) << setfill ('0');
+  std::ostringstream oss ("[");
 
   for (size_t i = 0; i < p->NUM_REGS; i++)
-    {
-      oss << p->mDataReg[i];
-      if (i != (p->NUM_REGS - 1))
-        oss << ", ";
-    }
+    oss << Utils::hexStr (p->mDataReg[i])
+        << ((i == (p->NUM_REGS - 1)) ? "]" : ", ");
 
-  oss << "]";
   return s << oss.str ();
 }
 
@@ -375,7 +370,7 @@ Dmi::Dmcontrol::reset ()
 void
 Dmi::Dmcontrol::write ()
 {
-  mDmcontrolReg = mDtm->dmiWrite (DMI_ADDR, mDmcontrolReg);
+  mDtm->dmiWrite (DMI_ADDR, mDmcontrolReg);
 }
 
 /// \brief Control whether to pretty print the \c dmcontrol register.
@@ -591,25 +586,21 @@ operator<< (ostream &s, const unique_ptr<Dmi::Dmcontrol> &p)
   std::ostringstream oss;
 
   if (p->mPrettyPrint)
-    oss << "[ haltreq = "
-        << ((p->mDmcontrolReg & p->HALTREQ_MASK) != 0 ? "true" : "false")
+    oss << "[ haltreq = " << Utils::nonZero (p->mDmcontrolReg & p->HALTREQ_MASK)
         << ", resumereq = "
-        << ((p->mDmcontrolReg & p->RESUMEREQ_MASK) != 0 ? "true" : "false")
-        << ", hartreset = " << (p->hartreset () ? "true" : "false")
+        << Utils::nonZero (p->mDmcontrolReg & p->RESUMEREQ_MASK)
+        << ", hartreset = " << Utils::boolStr (p->hartreset ())
         << ", ackhavereset = "
-        << ((p->mDmcontrolReg & p->ACKHAVERESET_MASK) != 0 ? "true" : "false")
-        << ", hasel = " << (p->hasel () ? "true" : "false") << ", hartsel = 0x"
-        << hex << setw (5) << setfill ('0') << p->hartsel ()
-        << ", setresethaltreq = "
-        << ((p->mDmcontrolReg & p->SETRESETHALTREQ_MASK) != 0 ? "true"
-                                                              : "false")
+        << Utils::nonZero (p->mDmcontrolReg & p->ACKHAVERESET_MASK)
+        << ", hasel = " << Utils::boolStr (p->hasel ()) << ", hartsel = 0x"
+        << Utils::hexStr (p->hartsel (), 5) << ", setresethaltreq = "
+        << Utils::nonZero (p->mDmcontrolReg & p->SETRESETHALTREQ_MASK)
         << ", clrresethaltreq = "
-        << ((p->mDmcontrolReg & p->CLRRESETHALTREQ_MASK) != 0 ? "true"
-                                                              : "false")
-        << ", ndmreset = " << (p->ndmreset () ? "true" : "false")
-        << ", dmactive = " << (p->dmactive () ? "true" : "false") << " ]";
+        << Utils::nonZero (p->mDmcontrolReg & p->CLRRESETHALTREQ_MASK)
+        << ", ndmreset = " << Utils::boolStr (p->ndmreset ())
+        << ", dmactive = " << Utils::boolStr (p->dmactive ()) << " ]";
   else
-    oss << hex << setw (8) << setfill ('0') << p->mDmcontrolReg;
+    oss << Utils::hexStr (p->mDmcontrolReg);
 
   return s << oss.str ();
 }
@@ -790,20 +781,20 @@ operator<< (ostream &s, const unique_ptr<Dmi::Dmstatus> &p)
   std::ostringstream oss;
 
   if (p->mPrettyPrint)
-    oss << "[ impebreak = " << (p->impebreak () ? "true" : "false")
-        << ", havereset = " << (p->havereset () ? "true" : "false")
-        << ", resumeack = " << (p->resumeack () ? "true" : "false")
-        << ", nonexistent = " << (p->nonexistent () ? "true" : "false")
-        << ", unavail = " << (p->unavail () ? "true" : "false")
-        << ", running = " << (p->running () ? "true" : "false")
-        << ", halted = " << (p->halted () ? "true" : "false")
-        << ", authenticated = " << (p->authenticated () ? "true" : "false")
-        << ", authbusy = " << (p->authbusy () ? "true" : "false")
-        << ", hasresethaltreq = " << (p->hasresethaltreq () ? "true" : "false")
-        << ", confstrptrvalid = " << (p->confstrptrvalid () ? "true" : "false")
+    oss << "[ impebreak = " << Utils::boolStr (p->impebreak ())
+        << ", havereset = " << Utils::boolStr (p->havereset ())
+        << ", resumeack = " << Utils::boolStr (p->resumeack ())
+        << ", nonexistent = " << Utils::boolStr (p->nonexistent ())
+        << ", unavail = " << Utils::boolStr (p->unavail ())
+        << ", running = " << Utils::boolStr (p->running ())
+        << ", halted = " << Utils::boolStr (p->halted ())
+        << ", authenticated = " << Utils::boolStr (p->authenticated ())
+        << ", authbusy = " << Utils::boolStr (p->authbusy ())
+        << ", hasresethaltreq = " << Utils::boolStr (p->hasresethaltreq ())
+        << ", confstrptrvalid = " << Utils::boolStr (p->confstrptrvalid ())
         << ", version = " << static_cast<uint16_t> (p->version ()) << " ]";
   else
-    oss << hex << setw (8) << setfill ('0') << p->mDmstatusReg;
+    oss << Utils::hexStr (p->mDmstatusReg);
 
   return s << oss.str ();
 }
@@ -891,12 +882,11 @@ operator<< (ostream &s, const unique_ptr<Dmi::Hartinfo> &p)
 
   if (p->mPrettyPrint)
     oss << "[ nscratch = " << static_cast<uint16_t> (p->nscratch ())
-        << ", dataaccess = " << (p->dataaccess () ? "true" : "false")
+        << ", dataaccess = " << Utils::boolStr (p->dataaccess ())
         << ", datasize = " << static_cast<uint16_t> (p->datasize ())
-        << ", dataaddr = 0x" << hex << setw (3) << setfill ('0')
-        << p->dataaddr () << " ]";
+        << ", dataaddr = 0x" << Utils::hexStr (p->dataaddr (), 3) << " ]";
   else
-    oss << hex << setw (8) << setfill ('0') << p->mHartinfoReg;
+    oss << Utils::hexStr (p->mHartinfoReg);
 
   return s << oss.str ();
 }
@@ -1010,7 +1000,7 @@ Dmi::Hawindowsel::reset ()
 void
 Dmi::Hawindowsel::write ()
 {
-  mHawindowselReg = mDtm->dmiWrite (DMI_ADDR, mHawindowselReg);
+  mDtm->dmiWrite (DMI_ADDR, mHawindowselReg);
 }
 
 /// \brief Get the \c hawindowsel bits of \c hawindowsel
@@ -1047,7 +1037,7 @@ std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Hawindowsel> &p)
 {
   std::ostringstream oss;
-  oss << hex << setw (8) << setfill ('0') << p->mHawindowselReg;
+  oss << Utils::hexStr (p->mHawindowselReg);
   return s << oss.str ();
 }
 
@@ -1088,7 +1078,7 @@ Dmi::Hawindow::reset ()
 void
 Dmi::Hawindow::write ()
 {
-  mHawindowReg = mDtm->dmiWrite (DMI_ADDR, mHawindowReg);
+  mDtm->dmiWrite (DMI_ADDR, mHawindowReg);
 }
 
 /// \brief Get the value of \c hawindow
@@ -1118,7 +1108,7 @@ std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Hawindow> &p)
 {
   std::ostringstream oss;
-  oss << hex << setw (8) << setfill ('0') << p->mHawindowReg;
+  oss << Utils::hexStr (p->mHawindowReg);
   return s << oss.str ();
 }
 
@@ -1160,7 +1150,7 @@ Dmi::Abstractcs::reset ()
 void
 Dmi::Abstractcs::write ()
 {
-  mAbstractcsReg = mDtm->dmiWrite (DMI_ADDR, mAbstractcsReg);
+  mDtm->dmiWrite (DMI_ADDR, mAbstractcsReg);
 }
 
 /// \brief Control whether to pretty print the \c abstractcs register.
@@ -1232,7 +1222,7 @@ operator<< (ostream &s, const unique_ptr<Dmi::Abstractcs> &p)
 
   if (p->mPrettyPrint)
     oss << "[ progbufsize = " << static_cast<uint16_t> (p->progbufsize ())
-        << ", busy = " << (p->busy () ? "true" : "false")
+        << ", busy = " << Utils::boolStr (p->busy ())
         << ", cmderr = " << static_cast<uint16_t> (p->cmderr ()) << " ("
         << (p->cmderr () == 0
                 ? "none"
@@ -1252,7 +1242,7 @@ operator<< (ostream &s, const unique_ptr<Dmi::Abstractcs> &p)
         << ", datacount = 0x" << static_cast<uint16_t> (p->datacount ())
         << " ]";
   else
-    oss << hex << setw (8) << setfill ('0') << p->mAbstractcsReg;
+    oss << Utils::hexStr (p->mAbstractcsReg);
 
   return s << oss.str ();
 }
@@ -1285,7 +1275,7 @@ Dmi::Command::reset ()
 void
 Dmi::Command::write ()
 {
-  mCommandReg = mDtm->dmiWrite (DMI_ADDR, mCommandReg);
+  mDtm->dmiWrite (DMI_ADDR, mCommandReg);
 }
 
 /// \brief Control whether to pretty print the \c command register.
@@ -1366,7 +1356,7 @@ Dmi::Command::aarsize (const Dmi::Command::AasizeEnum aarsizeVal)
     case ACCESS64:
     case ACCESS128:
       mCommandReg &= AARSIZE_MASK;
-      mCommandReg != static_cast<uint32_t> (aarsizeVal) << AARSIZE_OFFSET;
+      mCommandReg |= static_cast<uint32_t> (aarsizeVal) << AARSIZE_OFFSET;
       return;
 
     default:
@@ -1393,7 +1383,7 @@ Dmi::Command::aamsize (const Dmi::Command::AasizeEnum aamsizeVal)
     case ACCESS64:
     case ACCESS128:
       mCommandReg &= AAMSIZE_MASK;
-      mCommandReg != static_cast<uint32_t> (aamsizeVal) << AAMSIZE_OFFSET;
+      mCommandReg |= static_cast<uint32_t> (aamsizeVal) << AAMSIZE_OFFSET;
       return;
 
     default:
@@ -1497,7 +1487,7 @@ operator<< (ostream &s, const unique_ptr<Dmi::Command> &p)
         << ", control = 0x" << hex << setw (6) << setfill ('0')
         << ((p->mCommandReg & p->CONTROL_MASK) >> p->CONTROL_OFFSET) << " ]";
   else
-    oss << hex << setw (8) << setfill ('0') << p->mCommandReg;
+    oss << Utils::hexStr (p->mCommandReg);
 
   return s << oss.str ();
 }
@@ -1540,7 +1530,7 @@ Dmi::Abstractauto::reset ()
 void
 Dmi::Abstractauto::write ()
 {
-  mAbstractautoReg = mDtm->dmiWrite (DMI_ADDR, mAbstractautoReg);
+  mDtm->dmiWrite (DMI_ADDR, mAbstractautoReg);
 }
 
 /// \brief Control whether to pretty print the \c abstractauto register.
@@ -1619,7 +1609,7 @@ operator<< (ostream &s, const unique_ptr<Dmi::Abstractauto> &p)
         << p->autoexecprogbuf () << ", autoexecdata = 0x" << setw (3)
         << p->autoexecdata () << " ]";
   else
-    oss << hex << setw (8) << setfill ('0') << p->mAbstractautoReg;
+    oss << Utils::hexStr (p->mAbstractautoReg);
 
   return s << oss.str ();
 }
@@ -1739,7 +1729,7 @@ std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Nextdm> &p)
 {
   std::ostringstream oss;
-  oss << hex << setw (8) << setfill ('0') << p->mNextdmReg;
+  oss << Utils::hexStr (p->mNextdmReg);
   return s << oss.str ();
 }
 
@@ -1790,7 +1780,7 @@ void
 Dmi::Progbuf::write (const size_t n)
 {
   if (n < NUM_REGS)
-    mProgbufReg[n] = mDtm->dmiWrite (DMI_ADDR[n], mProgbufReg[n]);
+    mDtm->dmiWrite (DMI_ADDR[n], mProgbufReg[n]);
   else
     cerr << "Warning: writing progbuf[" << n << "] invalid: ignored." << endl;
 }
@@ -1837,17 +1827,11 @@ Dmi::Progbuf::progbuf (const size_t n, const uint32_t progbufVal)
 std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Progbuf> &p)
 {
-  std::ostringstream oss;
-  oss << "[" << hex << setw (8) << setfill ('0');
+  std::ostringstream oss ("[");
 
   for (size_t i = 0; i < p->NUM_REGS; i++)
-    {
-      oss << p->mProgbufReg[i];
-      if (i != (p->NUM_REGS - 1))
-        oss << ", ";
-    }
+    oss << p->mProgbufReg[i] << ((i == (p->NUM_REGS - 1)) ? "]" : ", ");
 
-  oss << "]";
   return s << oss.str ();
 }
 
@@ -1894,7 +1878,7 @@ Dmi::Authdata::write ()
 {
   cerr << "Warning: authentication not supported while writing authdata"
        << endl;
-  mAuthdataReg = mDtm->dmiWrite (DMI_ADDR, mAuthdataReg);
+  mDtm->dmiWrite (DMI_ADDR, mAuthdataReg);
 }
 
 /// \brief Get the value of \c authdata
@@ -1927,7 +1911,7 @@ std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Authdata> &p)
 {
   std::ostringstream oss;
-  oss << hex << setw (8) << setfill ('0') << p->mAuthdataReg;
+  oss << Utils::hexStr (p->mAuthdataReg);
   return s << oss.str ();
 }
 
@@ -1979,7 +1963,7 @@ void
 Dmi::Sbaddress::write (const size_t n)
 {
   if (n < NUM_REGS)
-    mSbaddressReg[n] = mDtm->dmiWrite (DMI_ADDR[n], mSbaddressReg[n]);
+    mDtm->dmiWrite (DMI_ADDR[n], mSbaddressReg[n]);
   else
     cerr << "Warning: writing sbaddress[" << n << "] invalid: ignored." << endl;
 }
@@ -2026,17 +2010,11 @@ Dmi::Sbaddress::sbaddress (const size_t n, const uint32_t sbaddressVal)
 std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Sbaddress> &p)
 {
-  std::ostringstream oss;
-  oss << "[" << hex << setw (8) << setfill ('0');
+  std::ostringstream oss ("[");
 
   for (size_t i = 0; i < p->NUM_REGS; i++)
-    {
-      oss << p->mSbaddressReg[i];
-      if (i != (p->NUM_REGS - 1))
-        oss << ", ";
-    }
+    oss << p->mSbaddressReg[i] << ((i == (p->NUM_REGS - 1)) ? "]" : ", ");
 
-  oss << "]";
   return s << oss.str ();
 }
 
@@ -2077,7 +2055,7 @@ Dmi::Sbcs::reset ()
 void
 Dmi::Sbcs::write ()
 {
-  mSbcsReg = mDtm->dmiWrite (DMI_ADDR, mSbcsReg);
+  mDtm->dmiWrite (DMI_ADDR, mSbcsReg);
 }
 
 /// \brief Control whether to pretty print the \c sbcs register.
@@ -2312,9 +2290,9 @@ operator<< (ostream &s, const unique_ptr<Dmi::Sbcs> &p)
                 ? "pre 1 Jan 2019"
                 : p->sbversion () == 1 ? "debug spec 0.13.2" : "RESERVED")
         << ")"
-        << ", sbbusyerror = " << (p->sbbusyerror () ? "true" : "false")
-        << ", sbbusy = " << (p->sbbusy () ? "true" : "false")
-        << ", sbreadonaddr = " << (p->sbreadonaddr () ? "true" : "false")
+        << ", sbbusyerror = " << Utils::boolStr (p->sbbusyerror ())
+        << ", sbbusy = " << Utils::boolStr (p->sbbusy ())
+        << ", sbreadonaddr = " << Utils::boolStr (p->sbreadonaddr ())
         << ", sbaccess = " << static_cast<uint16_t> (p->sbaccess ()) << " ("
         << (p->sbaccess () == 0
                 ? "8-bit"
@@ -2326,8 +2304,8 @@ operator<< (ostream &s, const unique_ptr<Dmi::Sbcs> &p)
                                   ? "64-bit"
                                   : p->sbaccess () == 4 ? "128-bit" : "INVALID")
         << ")"
-        << ", sbautoincrement = " << (p->sbautoincrement () ? "true" : "false")
-        << ", sbreadondata = " << (p->sbreadondata () ? "true" : "false")
+        << ", sbautoincrement = " << Utils::boolStr (p->sbautoincrement ())
+        << ", sbreadondata = " << Utils::boolStr (p->sbreadondata ())
         << ", sberror = " << static_cast<uint16_t> (p->sberror ()) << " ("
         << (p->sberror () == 0
                 ? "none"
@@ -2343,13 +2321,13 @@ operator<< (ostream &s, const unique_ptr<Dmi::Sbcs> &p)
                                                              : "INVALID")
         << ")"
         << ", sbasize = " << static_cast<uint16_t> (p->sbasize ())
-        << ", sbaccess128 = " << (p->sbaccess128 () ? "true" : "false")
-        << ", sbaccess64 = " << (p->sbaccess64 () ? "true" : "false")
-        << ", sbaccess32 = " << (p->sbaccess32 () ? "true" : "false")
-        << ", sbaccess16 = " << (p->sbaccess16 () ? "true" : "false")
-        << ", sbaccess8 = " << (p->sbaccess8 () ? "true" : "false") << " ]";
+        << ", sbaccess128 = " << Utils::boolStr (p->sbaccess128 ())
+        << ", sbaccess64 = " << Utils::boolStr (p->sbaccess64 ())
+        << ", sbaccess32 = " << Utils::boolStr (p->sbaccess32 ())
+        << ", sbaccess16 = " << Utils::boolStr (p->sbaccess16 ())
+        << ", sbaccess8 = " << Utils::boolStr (p->sbaccess8 ()) << " ]";
   else
-    oss << hex << setw (8) << setfill ('0') << p->mSbcsReg;
+    oss << Utils::hexStr (p->mSbcsReg);
 
   return s << oss.str ();
 }
@@ -2401,7 +2379,7 @@ void
 Dmi::Sbdata::write (const size_t n)
 {
   if (n < NUM_REGS)
-    mSbdataReg[n] = mDtm->dmiWrite (DMI_ADDR[n], mSbdataReg[n]);
+    mDtm->dmiWrite (DMI_ADDR[n], mSbdataReg[n]);
   else
     cerr << "Warning: writing sbdata[" << n << "] invalid: ignored." << endl;
 }
@@ -2448,16 +2426,10 @@ Dmi::Sbdata::sbdata (const size_t n, const uint32_t sbdataVal)
 std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Sbdata> &p)
 {
-  std::ostringstream oss;
-  oss << "[" << hex << setw (8) << setfill ('0');
+  std::ostringstream oss ("[");
 
   for (size_t i = 0; i < p->NUM_REGS; i++)
-    {
-      oss << p->mSbdataReg[i];
-      if (i != (p->NUM_REGS - 1))
-        oss << ", ";
-    }
+    oss << p->mSbdataReg[i] << ((i == (p->NUM_REGS - 1)) ? "]" : ", ");
 
-  oss << "]";
   return s << oss.str ();
 }

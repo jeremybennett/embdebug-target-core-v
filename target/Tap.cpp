@@ -131,7 +131,7 @@ Tap::accessReg (const uint8_t ir, uint64_t wdata, const uint8_t len)
   else
     shiftIr (ir);
 
-  uint64_t reg = static_cast<uint32_t> (shiftDr (wdata, len));
+  uint64_t reg = shiftDr (wdata, len);
   gotoState (UPDATE_DR);
 
   return reg;

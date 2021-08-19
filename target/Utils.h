@@ -26,6 +26,7 @@ public:
   static std::string hexStr (uint16_t val, std::size_t len = 4);
   static std::string hexStr (uint32_t val, std::size_t len = 8);
   static std::string hexStr (uint64_t val, std::size_t len = 16);
+  static std::string boolStr (bool flag);
   static std::string nonZero (uint64_t val);
 
 private:
