@@ -53,6 +53,180 @@ Dmi::Dmi (unique_ptr<IDtm> dtm_) : mDtm (std::move (dtm_))
   mSbdata.reset (new Sbdata (mDtm));
 }
 
+/// \brief Select a hart
+///
+/// \param[in] h  Number of the hart to select
+void
+Dmi::selectHart (uint32_t h)
+{
+  mDmcontrol->reset ();
+  mDmcontrol->hartsel (h);
+  mDmcontrol->dmactive (true);
+  mDmcontrol->write ();
+}
+
+/// Report the maximum of hart number supported
+///
+/// This uses the algorithm specified in section 3.3 in the ratified Debug
+/// Spec v 0.13.2.
+///
+/// \return The number of harts which exist
+uint32_t
+Dmi::hartsellen ()
+{
+  selectHart (mDmcontrol->hartselMax ());
+  mDmcontrol->reset ();
+  return mDmcontrol->hartsel ();
+}
+
+/// \brief Select and halt a hart
+///
+/// \param[in] h  Number of the hart to select and halt
+void
+Dmi::haltHart (uint32_t h)
+{
+  mDmcontrol->reset ();
+  mDmcontrol->haltreq (true);
+  mDmcontrol->hartsel (0);
+  mDmcontrol->dmactive (true);
+  mDmcontrol->write ();
+}
+
+/// \brief Get a CSR's name from its address
+///
+/// \param[in] csrAddr  The address of the CSR
+/// \return  The name of the CSR, or "UNKNOWN" if it does not exist
+const char *
+Dmi::csrName (const uint16_t csrAddr) const
+{
+  try
+    {
+      return mCsrMap.at (csrAddr).name;
+    }
+  catch (const std::out_of_range &oor)
+    {
+      return "UNKNOWN";
+    }
+}
+
+/// \brief Get whether a CSR is readonly from its address
+///
+/// \note There is no error indication for this call.
+///
+/// \param[in] csrAddr  The group the CSR belongs to
+/// \return  \c true if the CSR is read only, or if it does not exist, false
+///          otherwise.
+bool
+Dmi::csrReadOnly (const uint16_t csrAddr) const
+{
+  try
+    {
+      return mCsrMap.at (csrAddr).readOnly;
+    }
+  catch (const std::out_of_range &oor)
+    {
+      return true;
+    }
+}
+
+/// \brief Get a CSR's type from its address
+///
+/// \param[in] csrAddr  The group the CSR belongs to
+/// \return  The group of the CSR, or "NONE" if it does not exist
+Dmi::CsrType
+Dmi::csrType (const uint16_t csrAddr) const
+{
+  try
+    {
+      return mCsrMap.at (csrAddr).type;
+    }
+  catch (const std::out_of_range &oor)
+    {
+      return NONE;
+    }
+}
+
+/// \brief Read a CSR.
+///
+/// \param[in] addr  Address of the CSR to read.
+/// \return  The value of the CSR read.
+uint32_t
+Dmi::readCsr (uint16_t addr)
+{
+  mCommand->reset ();
+  mCommand->cmdtype (Dmi::Command::ACCESS_REG);
+  mCommand->aarsize (Dmi::Command::ACCESS32);
+  mCommand->aatransfer (true);
+  mCommand->aawrite (false);
+  mCommand->aaregno (addr);
+  mCommand->write ();
+
+  mData->read (0);
+  return mData->data (0);
+};
+
+/// \brief Write a CSR.
+///
+/// \note There is no check that the CSR is writable.
+///
+/// \param[in] addr  Address of the CSR to write.
+/// \param[in] val   The value to write to the CSR.
+void
+Dmi::writeCsr (uint16_t addr, uint32_t val)
+{
+  mData->reset (0);
+  mData->data (0, val);
+  mData->write (0);
+
+  mCommand->reset ();
+  mCommand->cmdtype (Dmi::Command::ACCESS_REG);
+  mCommand->aarsize (Dmi::Command::ACCESS32);
+  mCommand->aatransfer (true);
+  mCommand->aawrite (true);
+  mCommand->aaregno (addr);
+  mCommand->write ();
+};
+
+/// \brief Read a general purpose register
+///
+/// \param[in] regNum  Number of the register to read.
+/// \return  The value of the register read.
+uint32_t
+Dmi::readGpr (size_t regNum)
+{
+  return readCsr (GPR_BASE + static_cast<uint16_t> (regNum));
+}
+
+/// \brief Write a general purpose register
+///
+/// \param[in] regNum  Number of the register to write.
+/// \param[in] val     The value to write to the register.
+void
+Dmi::writeGpr (size_t regNum, uint32_t val)
+{
+  return writeCsr (GPR_BASE + static_cast<uint16_t> (regNum), val);
+}
+
+/// \brief Read a floating point register
+///
+/// \param[in] regNum  Number of the register to read.
+/// \return  The value of the register read.
+uint32_t
+Dmi::readFpr (size_t regNum)
+{
+  return readCsr (FPR_BASE + static_cast<uint16_t> (regNum));
+}
+
+/// \brief Write a floating point register
+///
+/// \param[in] regNum  Number of the register to write.
+/// \param[in] val     The value to write to the register.
+void
+Dmi::writeFpr (size_t regNum, uint32_t val)
+{
+  return writeCsr (FPR_BASE + static_cast<uint16_t> (regNum), val);
+}
+
 /// \brief Reset the underlying DTM.
 void
 Dmi::dtmReset ()
@@ -497,15 +671,13 @@ Dmi::Dmcontrol::hartsel (const uint32_t hartselVal)
   mDmcontrolReg |= hartselhi | hartsello;
 }
 
-/// \brief Set the \c hartsello and \c hartselhi bits of \c dmcontrol to their
-///        maximum possible value.
+/// \brief Return the maximum possible value of Hartsel
 ///
-/// Sets \c hartslehi to 0xf3ff
-/// Sets \c hartsello to 0xf3ff
-void
+/// \return The maximum value for Hartsel
+uint32_t
 Dmi::Dmcontrol::hartselMax ()
 {
-  mDmcontrolReg |= HARTSELHI_MASK | HARTSELLO_MASK;
+  return HARTSELHI_MASK << HARTSELLO_SIZE | HARTSELLO_MASK;
 }
 /// \brief Set the \c setresethaltreq bit in \c dmcontrol to 1 (NOT
 ///        IMPLEMENTED).

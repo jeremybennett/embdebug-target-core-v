@@ -89,8 +89,8 @@ DtmJtag::reset ()
   cout << ", addr mask = " << Utils::hexStr (mDmiAddrMask, 8) << "]" << endl;
 
   // Reset the DMI
-  writeDtmcs (0x10000);			// dmireset
-  return true; // Reset completed.
+  writeDtmcs (0x10000); // dmireset
+  return true;          // Reset completed.
 }
 
 /// \brief Read a DMI register.

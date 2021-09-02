@@ -9,6 +9,7 @@
 #define DMI_H
 
 #include <cstdint>
+#include <map>
 #include <memory>
 
 #include "IDtm.h"
@@ -88,7 +89,7 @@ public:
     void hasel (const bool flag);
     uint32_t hartsel () const;
     void hartsel (const uint32_t hartselVal);
-    void hartselMax ();
+    uint32_t hartselMax ();
     void setresethaltreq ();
     void clrresethaltreq ();
     bool ndmreset () const;
@@ -1116,10 +1117,237 @@ public:
     uint32_t mSbdataReg[NUM_REGS];
   };
 
+  /// \brief All the CSR addresses
+  class Csr
+  {
+  public:
+    // Standard user CSRs
+    static const uint16_t FFLAGS = 0x1;
+    static const uint16_t FRM = 0x2;
+    static const uint16_t FCSR = 0x3;
+    static const uint16_t CYCLE = 0xc00;
+    static const uint16_t INSTRET = 0xc02;
+    static const uint16_t HPMCOUNTER3 = 0xc03;
+    static const uint16_t HPMCOUNTER4 = 0xc04;
+    static const uint16_t HPMCOUNTER5 = 0xc05;
+    static const uint16_t HPMCOUNTER6 = 0xc06;
+    static const uint16_t HPMCOUNTER7 = 0xc07;
+    static const uint16_t HPMCOUNTER8 = 0xc08;
+    static const uint16_t HPMCOUNTER9 = 0xc09;
+    static const uint16_t HPMCOUNTER10 = 0xc0a;
+    static const uint16_t HPMCOUNTER11 = 0xc0b;
+    static const uint16_t HPMCOUNTER12 = 0xc0c;
+    static const uint16_t HPMCOUNTER13 = 0xc0d;
+    static const uint16_t HPMCOUNTER14 = 0xc0e;
+    static const uint16_t HPMCOUNTER15 = 0xc0f;
+    static const uint16_t HPMCOUNTER16 = 0xc10;
+    static const uint16_t HPMCOUNTER17 = 0xc11;
+    static const uint16_t HPMCOUNTER18 = 0xc12;
+    static const uint16_t HPMCOUNTER19 = 0xc13;
+    static const uint16_t HPMCOUNTER20 = 0xc14;
+    static const uint16_t HPMCOUNTER21 = 0xc15;
+    static const uint16_t HPMCOUNTER22 = 0xc16;
+    static const uint16_t HPMCOUNTER23 = 0xc17;
+    static const uint16_t HPMCOUNTER24 = 0xc18;
+    static const uint16_t HPMCOUNTER25 = 0xc19;
+    static const uint16_t HPMCOUNTER26 = 0xc1a;
+    static const uint16_t HPMCOUNTER27 = 0xc1b;
+    static const uint16_t HPMCOUNTER28 = 0xc1c;
+    static const uint16_t HPMCOUNTER29 = 0xc1d;
+    static const uint16_t HPMCOUNTER30 = 0xc1e;
+    static const uint16_t HPMCOUNTER31 = 0xc1f;
+    static const uint16_t CYCLEH = 0xc80;
+    static const uint16_t INSTRETH = 0xc82;
+    static const uint16_t HPMCOUNTERH3 = 0xc83;
+    static const uint16_t HPMCOUNTERH4 = 0xc84;
+    static const uint16_t HPMCOUNTERH5 = 0xc85;
+    static const uint16_t HPMCOUNTERH6 = 0xc86;
+    static const uint16_t HPMCOUNTERH7 = 0xc87;
+    static const uint16_t HPMCOUNTERH8 = 0xc88;
+    static const uint16_t HPMCOUNTERH9 = 0xc89;
+    static const uint16_t HPMCOUNTERH10 = 0xc8a;
+    static const uint16_t HPMCOUNTERH11 = 0xc8b;
+    static const uint16_t HPMCOUNTERH12 = 0xc8c;
+    static const uint16_t HPMCOUNTERH13 = 0xc8d;
+    static const uint16_t HPMCOUNTERH14 = 0xc8e;
+    static const uint16_t HPMCOUNTERH15 = 0xc8f;
+    static const uint16_t HPMCOUNTERH16 = 0xc90;
+    static const uint16_t HPMCOUNTERH17 = 0xc91;
+    static const uint16_t HPMCOUNTERH18 = 0xc92;
+    static const uint16_t HPMCOUNTERH19 = 0xc93;
+    static const uint16_t HPMCOUNTERH20 = 0xc94;
+    static const uint16_t HPMCOUNTERH21 = 0xc95;
+    static const uint16_t HPMCOUNTERH22 = 0xc96;
+    static const uint16_t HPMCOUNTERH23 = 0xc97;
+    static const uint16_t HPMCOUNTERH24 = 0xc98;
+    static const uint16_t HPMCOUNTERH25 = 0xc99;
+    static const uint16_t HPMCOUNTERH26 = 0xc9a;
+    static const uint16_t HPMCOUNTERH27 = 0xc9b;
+    static const uint16_t HPMCOUNTERH28 = 0xc9c;
+    static const uint16_t HPMCOUNTERH29 = 0xc9d;
+    static const uint16_t HPMCOUNTERH30 = 0xc9e;
+    static const uint16_t HPMCOUNTERH31 = 0xc9f;
+
+    // Custom user CSRs
+    static const uint16_t LPSTART0 = 0x800;
+    static const uint16_t LPEND0 = 0x801;
+    static const uint16_t LPCOUNT0 = 0x802;
+    static const uint16_t LPSTART1 = 0x804;
+    static const uint16_t LPEND1 = 0x805;
+    static const uint16_t LPCOUNT1 = 0x806;
+    static const uint16_t UHARTID = 0xcc0;
+    static const uint16_t PRIVLV = 0xcc1;
+
+    // Standard machine CSRs
+    static const uint16_t MSTATUS = 0x300;
+    static const uint16_t MISA = 0x301;
+    static const uint16_t MIE = 0x304;
+    static const uint16_t MTVEC = 0x305;
+    static const uint16_t MCOUNTINHIBIT = 0x320;
+    static const uint16_t MHPMEVENT3 = 0x323;
+    static const uint16_t MHPMEVENT4 = 0x324;
+    static const uint16_t MHPMEVENT5 = 0x325;
+    static const uint16_t MHPMEVENT6 = 0x326;
+    static const uint16_t MHPMEVENT7 = 0x327;
+    static const uint16_t MHPMEVENT8 = 0x328;
+    static const uint16_t MHPMEVENT9 = 0x329;
+    static const uint16_t MHPMEVENT10 = 0x32a;
+    static const uint16_t MHPMEVENT11 = 0x32b;
+    static const uint16_t MHPMEVENT12 = 0x32c;
+    static const uint16_t MHPMEVENT13 = 0x32d;
+    static const uint16_t MHPMEVENT14 = 0x32e;
+    static const uint16_t MHPMEVENT15 = 0x32f;
+    static const uint16_t MHPMEVENT16 = 0x330;
+    static const uint16_t MHPMEVENT17 = 0x331;
+    static const uint16_t MHPMEVENT18 = 0x332;
+    static const uint16_t MHPMEVENT19 = 0x333;
+    static const uint16_t MHPMEVENT20 = 0x334;
+    static const uint16_t MHPMEVENT21 = 0x335;
+    static const uint16_t MHPMEVENT22 = 0x336;
+    static const uint16_t MHPMEVENT23 = 0x337;
+    static const uint16_t MHPMEVENT24 = 0x338;
+    static const uint16_t MHPMEVENT25 = 0x339;
+    static const uint16_t MHPMEVENT26 = 0x33a;
+    static const uint16_t MHPMEVENT27 = 0x33b;
+    static const uint16_t MHPMEVENT28 = 0x33c;
+    static const uint16_t MHPMEVENT29 = 0x33d;
+    static const uint16_t MHPMEVENT30 = 0x33e;
+    static const uint16_t MHPMEVENT31 = 0x33f;
+    static const uint16_t MSCRATCH = 0x340;
+    static const uint16_t MEPC = 0x341;
+    static const uint16_t MCAUSE = 0x342;
+    static const uint16_t MTVAL = 0x343;
+    static const uint16_t MIP = 0x344;
+    static const uint16_t TSELECT = 0x7a0;
+    static const uint16_t TDATA1 = 0x7a1;
+    static const uint16_t TDATA2 = 0x7a2;
+    static const uint16_t TDATA3 = 0x7a3;
+    static const uint16_t TINFO = 0x7a4;
+    static const uint16_t MCONTEXT = 0x7a8;
+    static const uint16_t SCONTEXT = 0x7aa;
+    static const uint16_t DCSR = 0x7b0;
+    static const uint16_t DPC = 0x7b1;
+    static const uint16_t DSCRATCH0 = 0x7b2;
+    static const uint16_t DSCRATCH1 = 0x7b3;
+    static const uint16_t MCYCLE = 0xb00;
+    static const uint16_t MINSTRET = 0xb02;
+    static const uint16_t MHPMCOUNTER3 = 0xb03;
+    static const uint16_t MHPMCOUNTER4 = 0xb04;
+    static const uint16_t MHPMCOUNTER5 = 0xb05;
+    static const uint16_t MHPMCOUNTER6 = 0xb06;
+    static const uint16_t MHPMCOUNTER7 = 0xb07;
+    static const uint16_t MHPMCOUNTER8 = 0xb08;
+    static const uint16_t MHPMCOUNTER9 = 0xb09;
+    static const uint16_t MHPMCOUNTER10 = 0xb0a;
+    static const uint16_t MHPMCOUNTER11 = 0xb0b;
+    static const uint16_t MHPMCOUNTER12 = 0xb0c;
+    static const uint16_t MHPMCOUNTER13 = 0xb0d;
+    static const uint16_t MHPMCOUNTER14 = 0xb0e;
+    static const uint16_t MHPMCOUNTER15 = 0xb0f;
+    static const uint16_t MHPMCOUNTER16 = 0xb10;
+    static const uint16_t MHPMCOUNTER17 = 0xb11;
+    static const uint16_t MHPMCOUNTER18 = 0xb12;
+    static const uint16_t MHPMCOUNTER19 = 0xb13;
+    static const uint16_t MHPMCOUNTER20 = 0xb14;
+    static const uint16_t MHPMCOUNTER21 = 0xb15;
+    static const uint16_t MHPMCOUNTER22 = 0xb16;
+    static const uint16_t MHPMCOUNTER23 = 0xb17;
+    static const uint16_t MHPMCOUNTER24 = 0xb18;
+    static const uint16_t MHPMCOUNTER25 = 0xb19;
+    static const uint16_t MHPMCOUNTER26 = 0xb1a;
+    static const uint16_t MHPMCOUNTER27 = 0xb1b;
+    static const uint16_t MHPMCOUNTER28 = 0xb1c;
+    static const uint16_t MHPMCOUNTER29 = 0xb1d;
+    static const uint16_t MHPMCOUNTER30 = 0xb1e;
+    static const uint16_t MHPMCOUNTER31 = 0xb1f;
+    static const uint16_t MCYCLEH = 0xb80;
+    static const uint16_t MINSTRETH = 0xb82;
+    static const uint16_t MHPMCOUNTERH3 = 0xb83;
+    static const uint16_t MHPMCOUNTERH4 = 0xb84;
+    static const uint16_t MHPMCOUNTERH5 = 0xb85;
+    static const uint16_t MHPMCOUNTERH6 = 0xb86;
+    static const uint16_t MHPMCOUNTERH7 = 0xb87;
+    static const uint16_t MHPMCOUNTERH8 = 0xb88;
+    static const uint16_t MHPMCOUNTERH9 = 0xb89;
+    static const uint16_t MHPMCOUNTERH10 = 0xb8a;
+    static const uint16_t MHPMCOUNTERH11 = 0xb8b;
+    static const uint16_t MHPMCOUNTERH12 = 0xb8c;
+    static const uint16_t MHPMCOUNTERH13 = 0xb8d;
+    static const uint16_t MHPMCOUNTERH14 = 0xb8e;
+    static const uint16_t MHPMCOUNTERH15 = 0xb8f;
+    static const uint16_t MHPMCOUNTERH16 = 0xb90;
+    static const uint16_t MHPMCOUNTERH17 = 0xb91;
+    static const uint16_t MHPMCOUNTERH18 = 0xb92;
+    static const uint16_t MHPMCOUNTERH19 = 0xb93;
+    static const uint16_t MHPMCOUNTERH20 = 0xb94;
+    static const uint16_t MHPMCOUNTERH21 = 0xb95;
+    static const uint16_t MHPMCOUNTERH22 = 0xb96;
+    static const uint16_t MHPMCOUNTERH23 = 0xb97;
+    static const uint16_t MHPMCOUNTERH24 = 0xb98;
+    static const uint16_t MHPMCOUNTERH25 = 0xb99;
+    static const uint16_t MHPMCOUNTERH26 = 0xb9a;
+    static const uint16_t MHPMCOUNTERH27 = 0xb9b;
+    static const uint16_t MHPMCOUNTERH28 = 0xb9c;
+    static const uint16_t MHPMCOUNTERH29 = 0xb9d;
+    static const uint16_t MHPMCOUNTERH30 = 0xb9e;
+    static const uint16_t MHPMCOUNTERH31 = 0xb9f;
+    static const uint16_t MVENDORID = 0xf11;
+    static const uint16_t MARCHID = 0xf12;
+    static const uint16_t MIMPID = 0xf13;
+    static const uint16_t MHARTID = 0xf14;
+  };
+
+  /// \brief An enumeration of the groups of CSRs
+  enum CsrType
+  {
+    NONE, ///< Used for non-existent CSRs.
+    ANY,  ///< All configurations
+    FP,   ///< Only if FPU is present
+    HWLP, ///< Only if hardware loop is present
+  };
+
   // Constructor and destructor
   Dmi (std::unique_ptr<IDtm> dtm);
   Dmi () = delete;
   ~Dmi () = default;
+
+  // Hart control API
+  void selectHart (uint32_t h);
+  uint32_t hartsellen ();
+  void haltHart (uint32_t h);
+
+  // Accessors for CSR fields
+  const char *csrName (const uint16_t csrAddr) const;
+  bool csrReadOnly (const uint16_t csrAddr) const;
+  CsrType csrType (const uint16_t csrAddr) const;
+
+  // Register access API
+  uint32_t readCsr (uint16_t addr);
+  void writeCsr (uint16_t addr, uint32_t val);
+  uint32_t readGpr (size_t regNum);
+  void writeGpr (size_t regNum, uint32_t val);
+  uint32_t readFpr (size_t regNum);
+  void writeFpr (size_t regNum, uint32_t val);
 
   // API for the underlying DTM
   void dtmReset ();
@@ -1144,7 +1372,220 @@ public:
   std::unique_ptr<Sbdata> &sbdata ();
 
 private:
-  /// \brief the Debug Transport Module we use.
+  /// \brief A structure representing a CSR
+  ///
+  /// CSRs will be placed into a std::map with this data keyed by the CSR
+  /// address.
+  struct CsrInfo
+  {
+    const char *name;    ///< The printable name of the CSR
+    const bool readOnly; ///< True if the CSR is read only
+    const CsrType type;  ///< Which CSR group
+  };
+
+  /// \brief Base address of the GPRs when reading/writing
+  static const uint16_t GPR_BASE = 0x1000;
+
+  /// \brief Base address of the FPRs when reading/writing
+  static const uint16_t FPR_BASE = 0x1020;
+
+  /// \brief A map of CSR address to name, readability and instruction gorup
+  std::map<const uint16_t, CsrInfo> mCsrMap{
+    // Standard user CSRs
+    { Csr::FFLAGS, { "fflags", false, FP } },
+    { Csr::FRM, { "frm", false, FP } },
+    { Csr::FCSR, { "fcsr", false, FP } },
+    { Csr::CYCLE, { "cycle", true, ANY } },
+    { Csr::INSTRET, { "instret", true, ANY } },
+    { Csr::HPMCOUNTER3, { "hpmcounter3", true, ANY } },
+    { Csr::HPMCOUNTER4, { "hpmcounter4", true, ANY } },
+    { Csr::HPMCOUNTER5, { "hpmcounter5", true, ANY } },
+    { Csr::HPMCOUNTER6, { "hpmcounter6", true, ANY } },
+    { Csr::HPMCOUNTER7, { "hpmcounter7", true, ANY } },
+    { Csr::HPMCOUNTER8, { "hpmcounter8", true, ANY } },
+    { Csr::HPMCOUNTER9, { "hpmcounter9", true, ANY } },
+    { Csr::HPMCOUNTER10, { "hpmcounter10", true, ANY } },
+    { Csr::HPMCOUNTER11, { "hpmcounter11", true, ANY } },
+    { Csr::HPMCOUNTER12, { "hpmcounter12", true, ANY } },
+    { Csr::HPMCOUNTER13, { "hpmcounter13", true, ANY } },
+    { Csr::HPMCOUNTER14, { "hpmcounter14", true, ANY } },
+    { Csr::HPMCOUNTER15, { "hpmcounter15", true, ANY } },
+    { Csr::HPMCOUNTER16, { "hpmcounter16", true, ANY } },
+    { Csr::HPMCOUNTER17, { "hpmcounter17", true, ANY } },
+    { Csr::HPMCOUNTER18, { "hpmcounter18", true, ANY } },
+    { Csr::HPMCOUNTER19, { "hpmcounter19", true, ANY } },
+    { Csr::HPMCOUNTER20, { "hpmcounter20", true, ANY } },
+    { Csr::HPMCOUNTER21, { "hpmcounter21", true, ANY } },
+    { Csr::HPMCOUNTER22, { "hpmcounter22", true, ANY } },
+    { Csr::HPMCOUNTER23, { "hpmcounter23", true, ANY } },
+    { Csr::HPMCOUNTER24, { "hpmcounter24", true, ANY } },
+    { Csr::HPMCOUNTER25, { "hpmcounter25", true, ANY } },
+    { Csr::HPMCOUNTER26, { "hpmcounter26", true, ANY } },
+    { Csr::HPMCOUNTER27, { "hpmcounter27", true, ANY } },
+    { Csr::HPMCOUNTER28, { "hpmcounter28", true, ANY } },
+    { Csr::HPMCOUNTER29, { "hpmcounter29", true, ANY } },
+    { Csr::HPMCOUNTER30, { "hpmcounter30", true, ANY } },
+    { Csr::HPMCOUNTER31, { "hpmcounter31", true, ANY } },
+    { Csr::CYCLEH, { "cycleh", true, ANY } },
+    { Csr::INSTRETH, { "instreth", true, ANY } },
+    { Csr::HPMCOUNTERH3, { "hpmcounterh3", true, ANY } },
+    { Csr::HPMCOUNTERH4, { "hpmcounterh4", true, ANY } },
+    { Csr::HPMCOUNTERH5, { "hpmcounterh5", true, ANY } },
+    { Csr::HPMCOUNTERH6, { "hpmcounterh6", true, ANY } },
+    { Csr::HPMCOUNTERH7, { "hpmcounterh7", true, ANY } },
+    { Csr::HPMCOUNTERH8, { "hpmcounterh8", true, ANY } },
+    { Csr::HPMCOUNTERH9, { "hpmcounterh9", true, ANY } },
+    { Csr::HPMCOUNTERH10, { "hpmcounterh10", true, ANY } },
+    { Csr::HPMCOUNTERH11, { "hpmcounterh11", true, ANY } },
+    { Csr::HPMCOUNTERH12, { "hpmcounterh12", true, ANY } },
+    { Csr::HPMCOUNTERH13, { "hpmcounterh13", true, ANY } },
+    { Csr::HPMCOUNTERH14, { "hpmcounterh14", true, ANY } },
+    { Csr::HPMCOUNTERH15, { "hpmcounterh15", true, ANY } },
+    { Csr::HPMCOUNTERH16, { "hpmcounterh16", true, ANY } },
+    { Csr::HPMCOUNTERH17, { "hpmcounterh17", true, ANY } },
+    { Csr::HPMCOUNTERH18, { "hpmcounterh18", true, ANY } },
+    { Csr::HPMCOUNTERH19, { "hpmcounterh19", true, ANY } },
+    { Csr::HPMCOUNTERH20, { "hpmcounterh20", true, ANY } },
+    { Csr::HPMCOUNTERH21, { "hpmcounterh21", true, ANY } },
+    { Csr::HPMCOUNTERH22, { "hpmcounterh22", true, ANY } },
+    { Csr::HPMCOUNTERH23, { "hpmcounterh23", true, ANY } },
+    { Csr::HPMCOUNTERH24, { "hpmcounterh24", true, ANY } },
+    { Csr::HPMCOUNTERH25, { "hpmcounterh25", true, ANY } },
+    { Csr::HPMCOUNTERH26, { "hpmcounterh26", true, ANY } },
+    { Csr::HPMCOUNTERH27, { "hpmcounterh27", true, ANY } },
+    { Csr::HPMCOUNTERH28, { "hpmcounterh28", true, ANY } },
+    { Csr::HPMCOUNTERH29, { "hpmcounterh29", true, ANY } },
+    { Csr::HPMCOUNTERH30, { "hpmcounterh30", true, ANY } },
+    { Csr::HPMCOUNTERH31, { "hpmcounterh31", true, ANY } },
+    // Custom user CSRs
+    { Csr::LPSTART0, { "lpstart0", false, HWLP } },
+    { Csr::LPEND0, { "lpend0", false, HWLP } },
+    { Csr::LPCOUNT0, { "lpcount0", false, HWLP } },
+    { Csr::LPSTART1, { "lpstart1", false, HWLP } },
+    { Csr::LPEND1, { "lpend1", false, HWLP } },
+    { Csr::LPCOUNT1, { "lpcount1", false, HWLP } },
+    { Csr::UHARTID, { "uhartid", true, ANY } },
+    { Csr::PRIVLV, { "privlv", true, ANY } },
+    // Standard machine CSRs
+    { Csr::MSTATUS, { "mstatus", false, ANY } },
+    { Csr::MISA, { "misa", false, ANY } },
+    { Csr::MIE, { "mie", false, ANY } },
+    { Csr::MTVEC, { "mtvec", false, ANY } },
+    { Csr::MCOUNTINHIBIT, { "mcountinhibit", false, ANY } },
+    { Csr::MHPMEVENT3, { "mhpmevent3", false, ANY } },
+    { Csr::MHPMEVENT4, { "mhpmevent4", false, ANY } },
+    { Csr::MHPMEVENT5, { "mhpmevent5", false, ANY } },
+    { Csr::MHPMEVENT6, { "mhpmevent6", false, ANY } },
+    { Csr::MHPMEVENT7, { "mhpmevent7", false, ANY } },
+    { Csr::MHPMEVENT8, { "mhpmevent8", false, ANY } },
+    { Csr::MHPMEVENT9, { "mhpmevent9", false, ANY } },
+    { Csr::MHPMEVENT10, { "mhpmevent10", false, ANY } },
+    { Csr::MHPMEVENT11, { "mhpmevent11", false, ANY } },
+    { Csr::MHPMEVENT12, { "mhpmevent12", false, ANY } },
+    { Csr::MHPMEVENT13, { "mhpmevent13", false, ANY } },
+    { Csr::MHPMEVENT14, { "mhpmevent14", false, ANY } },
+    { Csr::MHPMEVENT15, { "mhpmevent15", false, ANY } },
+    { Csr::MHPMEVENT16, { "mhpmevent16", false, ANY } },
+    { Csr::MHPMEVENT17, { "mhpmevent17", false, ANY } },
+    { Csr::MHPMEVENT18, { "mhpmevent18", false, ANY } },
+    { Csr::MHPMEVENT19, { "mhpmevent19", false, ANY } },
+    { Csr::MHPMEVENT20, { "mhpmevent20", false, ANY } },
+    { Csr::MHPMEVENT21, { "mhpmevent21", false, ANY } },
+    { Csr::MHPMEVENT22, { "mhpmevent22", false, ANY } },
+    { Csr::MHPMEVENT23, { "mhpmevent23", false, ANY } },
+    { Csr::MHPMEVENT24, { "mhpmevent24", false, ANY } },
+    { Csr::MHPMEVENT25, { "mhpmevent25", false, ANY } },
+    { Csr::MHPMEVENT26, { "mhpmevent26", false, ANY } },
+    { Csr::MHPMEVENT27, { "mhpmevent27", false, ANY } },
+    { Csr::MHPMEVENT28, { "mhpmevent28", false, ANY } },
+    { Csr::MHPMEVENT29, { "mhpmevent29", false, ANY } },
+    { Csr::MHPMEVENT30, { "mhpmevent30", false, ANY } },
+    { Csr::MHPMEVENT31, { "mhpmevent31", false, ANY } },
+    { Csr::MSCRATCH, { "mscratch", false, ANY } },
+    { Csr::MEPC, { "mepc", false, ANY } },
+    { Csr::MCAUSE, { "mcause", false, ANY } },
+    { Csr::MTVAL, { "mtval", false, ANY } },
+    { Csr::MIP, { "mip", false, ANY } },
+    { Csr::TSELECT, { "tselect", false, ANY } },
+    { Csr::TDATA1, { "tdata1", false, ANY } },
+    { Csr::TDATA2, { "tdata2", false, ANY } },
+    { Csr::TDATA3, { "tdata3", false, ANY } },
+    { Csr::TINFO, { "tinfo", true, ANY } },
+    { Csr::MCONTEXT, { "mcontext", false, ANY } },
+    { Csr::SCONTEXT, { "scontext", false, ANY } },
+    { Csr::DCSR, { "dcsr", false, ANY } },
+    { Csr::DPC, { "dpc", false, ANY } },
+    { Csr::DSCRATCH0, { "dscratch0", false, ANY } },
+    { Csr::DSCRATCH1, { "dscratch1", false, ANY } },
+    { Csr::MCYCLE, { "mcycle", false, ANY } },
+    { Csr::MINSTRET, { "minstret", false, ANY } },
+    { Csr::MHPMCOUNTER3, { "mhpmcounter3", false, ANY } },
+    { Csr::MHPMCOUNTER4, { "mhpmcounter4", false, ANY } },
+    { Csr::MHPMCOUNTER5, { "mhpmcounter5", false, ANY } },
+    { Csr::MHPMCOUNTER6, { "mhpmcounter6", false, ANY } },
+    { Csr::MHPMCOUNTER7, { "mhpmcounter7", false, ANY } },
+    { Csr::MHPMCOUNTER8, { "mhpmcounter8", false, ANY } },
+    { Csr::MHPMCOUNTER9, { "mhpmcounter9", false, ANY } },
+    { Csr::MHPMCOUNTER10, { "mhpmcounter10", false, ANY } },
+    { Csr::MHPMCOUNTER11, { "mhpmcounter11", false, ANY } },
+    { Csr::MHPMCOUNTER12, { "mhpmcounter12", false, ANY } },
+    { Csr::MHPMCOUNTER13, { "mhpmcounter13", false, ANY } },
+    { Csr::MHPMCOUNTER14, { "mhpmcounter14", false, ANY } },
+    { Csr::MHPMCOUNTER15, { "mhpmcounter15", false, ANY } },
+    { Csr::MHPMCOUNTER16, { "mhpmcounter16", false, ANY } },
+    { Csr::MHPMCOUNTER17, { "mhpmcounter17", false, ANY } },
+    { Csr::MHPMCOUNTER18, { "mhpmcounter18", false, ANY } },
+    { Csr::MHPMCOUNTER19, { "mhpmcounter19", false, ANY } },
+    { Csr::MHPMCOUNTER20, { "mhpmcounter20", false, ANY } },
+    { Csr::MHPMCOUNTER21, { "mhpmcounter21", false, ANY } },
+    { Csr::MHPMCOUNTER22, { "mhpmcounter22", false, ANY } },
+    { Csr::MHPMCOUNTER23, { "mhpmcounter23", false, ANY } },
+    { Csr::MHPMCOUNTER24, { "mhpmcounter24", false, ANY } },
+    { Csr::MHPMCOUNTER25, { "mhpmcounter25", false, ANY } },
+    { Csr::MHPMCOUNTER26, { "mhpmcounter26", false, ANY } },
+    { Csr::MHPMCOUNTER27, { "mhpmcounter27", false, ANY } },
+    { Csr::MHPMCOUNTER28, { "mhpmcounter28", false, ANY } },
+    { Csr::MHPMCOUNTER29, { "mhpmcounter29", false, ANY } },
+    { Csr::MHPMCOUNTER30, { "mhpmcounter30", false, ANY } },
+    { Csr::MHPMCOUNTER31, { "mhpmcounter31", false, ANY } },
+    { Csr::MCYCLEH, { "mcycleh", false, ANY } },
+    { Csr::MINSTRETH, { "minstreth", false, ANY } },
+    { Csr::MHPMCOUNTERH3, { "mhpmcounterh3", false, ANY } },
+    { Csr::MHPMCOUNTERH4, { "mhpmcounterh4", false, ANY } },
+    { Csr::MHPMCOUNTERH5, { "mhpmcounterh5", false, ANY } },
+    { Csr::MHPMCOUNTERH6, { "mhpmcounterh6", false, ANY } },
+    { Csr::MHPMCOUNTERH7, { "mhpmcounterh7", false, ANY } },
+    { Csr::MHPMCOUNTERH8, { "mhpmcounterh8", false, ANY } },
+    { Csr::MHPMCOUNTERH9, { "mhpmcounterh9", false, ANY } },
+    { Csr::MHPMCOUNTERH10, { "mhpmcounterh10", false, ANY } },
+    { Csr::MHPMCOUNTERH11, { "mhpmcounterh11", false, ANY } },
+    { Csr::MHPMCOUNTERH12, { "mhpmcounterh12", false, ANY } },
+    { Csr::MHPMCOUNTERH13, { "mhpmcounterh13", false, ANY } },
+    { Csr::MHPMCOUNTERH14, { "mhpmcounterh14", false, ANY } },
+    { Csr::MHPMCOUNTERH15, { "mhpmcounterh15", false, ANY } },
+    { Csr::MHPMCOUNTERH16, { "mhpmcounterh16", false, ANY } },
+    { Csr::MHPMCOUNTERH17, { "mhpmcounterh17", false, ANY } },
+    { Csr::MHPMCOUNTERH18, { "mhpmcounterh18", false, ANY } },
+    { Csr::MHPMCOUNTERH19, { "mhpmcounterh19", false, ANY } },
+    { Csr::MHPMCOUNTERH20, { "mhpmcounterh20", false, ANY } },
+    { Csr::MHPMCOUNTERH21, { "mhpmcounterh21", false, ANY } },
+    { Csr::MHPMCOUNTERH22, { "mhpmcounterh22", false, ANY } },
+    { Csr::MHPMCOUNTERH23, { "mhpmcounterh23", false, ANY } },
+    { Csr::MHPMCOUNTERH24, { "mhpmcounterh24", false, ANY } },
+    { Csr::MHPMCOUNTERH25, { "mhpmcounterh25", false, ANY } },
+    { Csr::MHPMCOUNTERH26, { "mhpmcounterh26", false, ANY } },
+    { Csr::MHPMCOUNTERH27, { "mhpmcounterh27", false, ANY } },
+    { Csr::MHPMCOUNTERH28, { "mhpmcounterh28", false, ANY } },
+    { Csr::MHPMCOUNTERH29, { "mhpmcounterh29", false, ANY } },
+    { Csr::MHPMCOUNTERH30, { "mhpmcounterh30", false, ANY } },
+    { Csr::MHPMCOUNTERH31, { "mhpmcounterh31", false, ANY } },
+    { Csr::MVENDORID, { "mvendorid", true, ANY } },
+    { Csr::MARCHID, { "marchid", true, ANY } },
+    { Csr::MIMPID, { "mimpid", true, ANY } },
+    { Csr::MHARTID, { "mhartid", true, ANY } }
+  };
+
+  /// \brief The Debug Transport Module we use.
   std::unique_ptr<IDtm> mDtm;
 
   /// \brief The \c data register set.
