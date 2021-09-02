@@ -37,7 +37,7 @@ CF_STYLE := "{BasedOnStyle: GNU, \
 OBJS = Args.o Dmi.o DtmJtag.o Tap.o Utils.o VSim.o testbench.o
 
 .PHONY: all
-all: boot/boot_code.cde testbench.exe
+all: mem_init testbench.exe
 
 testbench.exe: $(OBJS) verilated.o verilated_vcd_c.o $(MODEL_LIB)
 	$(CXX) $(LDFLAGS) -o $@ $^
@@ -48,9 +48,9 @@ verilated.o: $(VERILATED_SRC) $(VERILATED_DEPS) $(MODEL_LIB)
 verilated_vcd_c.o: $(VERILATED_VCD_C_SRC) $(VERILATED_VCD_C_DEPS) $(MODEL_LIB)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(VERILATED_VCD_C_SRC)
 
-boot/boot_code.cde:
+mem_init:
 	$(RM) $@
-	ln -s $(MCU_DIR)/sim/boot/boot_code.cde $@
+	ln -s $(MODEL_DIR)/mem_init $@
 
 # Header dependencies
 testbench.o: Args.h Dmi.h DtmJtag.h IDtm.h

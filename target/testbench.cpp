@@ -25,7 +25,6 @@ using std::endl;
 using std::unique_ptr;
 
 /// \brief Enumeration of the CSRs
-
 enum Csrs
 {
   FFLAGS = 0x1,
@@ -588,7 +587,7 @@ main (int argc, char *argv[])
       dmstatus->prettyPrint (true);
       cout << " " << dmstatus << endl << endl;
 
-      if (dmstatus->unavail ())
+      if (dmstatus->nonexistent ())
         break;
     }
 
