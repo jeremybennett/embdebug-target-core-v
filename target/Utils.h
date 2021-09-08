@@ -28,9 +28,14 @@ public:
   static std::string hexStr (uint64_t val, std::size_t len = 16);
   static std::string boolStr (bool flag);
   static std::string nonZero (uint64_t val);
+  static std::string decStr (std::size_t val);
+
+  // Generate a padding string
+  static std::string padStr (std::string s, std::size_t w, char c = ' ');
 
 private:
-  static std::ostringstream oss;
+  static std::ostringstream sOss;
+  static std::string sPadding;
 };
 
 #endif // UTILS_H

@@ -677,7 +677,8 @@ Dmi::Dmcontrol::hartsel (const uint32_t hartselVal)
 uint32_t
 Dmi::Dmcontrol::hartselMax ()
 {
-  return HARTSELHI_MASK << HARTSELLO_SIZE | HARTSELLO_MASK;
+  return ((HARTSELHI_MASK >> HARTSELHI_OFFSET) << HARTSELLO_SIZE)
+         | (HARTSELLO_MASK >> HARTSELLO_OFFSET);
 }
 /// \brief Set the \c setresethaltreq bit in \c dmcontrol to 1 (NOT
 ///        IMPLEMENTED).

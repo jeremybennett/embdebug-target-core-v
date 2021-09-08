@@ -37,6 +37,10 @@ Args::Args (int argc, char *argv[])
                           value<uint64_t> ()->default_value ("0"), "<time>");
   options.add_options () ("vcd", "Verilog Change Dump file name",
                           value<string> ()->default_value (""), "<filename>");
+  options.add_options () ("test-status", "Run a test of hart status");
+  options.add_options () ("test-gprs", "Run a test of the GPRs");
+  options.add_options () ("test-fprs", "Run a test of the FPRs");
+  options.add_options () ("test-csrs", "Run a test of the CSRs");
   options.add_options () ("h,help", "Produce help message and exit");
   options.add_options () ("v,version", "Produce version message and exit");
 
@@ -94,6 +98,11 @@ Args::Args (int argc, char *argv[])
     {
       mVcd.append (".vcd");
     }
+
+  mTestStatus = res.count ("test-status") > 0;
+  mTestGprs = res.count ("test-gprs") > 0;
+  mTestFprs = res.count ("test-fprs") > 0;
+  mTestCsrs = res.count ("test-csrs") > 0;
 }
 
 /// \brief Destructor.
@@ -128,4 +137,40 @@ uint64_t
 Args::durationNs () const
 {
   return mDurationNs;
+}
+
+/// \brief Getter for whether to test hart status
+///
+/// \return \c true if we should test hart status, \c false otherwise.
+bool
+Args::testStatus () const
+{
+  return mTestStatus;
+}
+
+/// \brief Getter for whether to test GPRs
+///
+/// \return \c true if we should test GPRs, \c false otherwise.
+bool
+Args::testGprs () const
+{
+  return mTestGprs;
+}
+
+/// \brief Getter for whether to test FPRs
+///
+/// \return \c true if we should test FPRs, \c false otherwise.
+bool
+Args::testFprs () const
+{
+  return mTestFprs;
+}
+
+/// \brief Getter for whether to test CSRs
+///
+/// \return \c true if we should test CSRs, \c false otherwise.
+bool
+Args::testCsrs () const
+{
+  return mTestCsrs;
 }

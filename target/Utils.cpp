@@ -11,6 +11,7 @@
 
 #include "Utils.h"
 
+using std::dec;
 using std::hex;
 using std::ostringstream;
 using std::setfill;
@@ -19,7 +20,10 @@ using std::size_t;
 using std::string;
 
 /// Instantiate the output string stream.
-ostringstream Utils::oss;
+ostringstream Utils::sOss;
+
+/// Instatiate the padding string
+string Utils::sPadding;
 
 /// \brief Generate the hexadecimal representation of an octet.
 ///
@@ -32,9 +36,9 @@ ostringstream Utils::oss;
 string
 Utils::hexStr (const uint8_t val, const size_t len)
 {
-  oss.str ("");
-  oss << hex << setfill ('0') << setw (len) << val;
-  return oss.str ();
+  sOss.str ("");
+  sOss << hex << setfill ('0') << setw (len) << val;
+  return sOss.str ();
 }
 
 /// \brief Generate the hexadecimal representation of a 16-bit word.
@@ -48,9 +52,9 @@ Utils::hexStr (const uint8_t val, const size_t len)
 string
 Utils::hexStr (const uint16_t val, const size_t len)
 {
-  oss.str ("");
-  oss << hex << setfill ('0') << setw (len) << val;
-  return oss.str ();
+  sOss.str ("");
+  sOss << hex << setfill ('0') << setw (len) << val;
+  return sOss.str ();
 }
 
 /// \brief Generate the hexadecimal representation of a 32-bit word.
@@ -64,9 +68,9 @@ Utils::hexStr (const uint16_t val, const size_t len)
 string
 Utils::hexStr (const uint32_t val, const size_t len)
 {
-  oss.str ("");
-  oss << hex << setfill ('0') << setw (len) << val;
-  return oss.str ();
+  sOss.str ("");
+  sOss << hex << setfill ('0') << setw (len) << val;
+  return sOss.str ();
 }
 
 /// \brief Generate the hexadecimal representation of a 64-bit word.
@@ -80,9 +84,9 @@ Utils::hexStr (const uint32_t val, const size_t len)
 string
 Utils::hexStr (const uint64_t val, const size_t len)
 {
-  oss.str ("");
-  oss << hex << setfill ('0') << setw (len) << val;
-  return oss.str ();
+  sOss.str ("");
+  sOss << hex << setfill ('0') << setw (len) << val;
+  return sOss.str ();
 }
 
 /// \brief String representation of booleans.
@@ -92,14 +96,14 @@ Utils::hexStr (const uint64_t val, const size_t len)
 string
 Utils::boolStr (bool flag)
 {
-  oss.str ("");
+  sOss.str ("");
 
   if (flag)
-    oss << "true";
+    sOss << "true";
   else
-    oss << "false";
+    sOss << "false";
 
-  return oss.str ();
+  return sOss.str ();
 }
 
 /// \brief String representation of numbers as boolean values.
@@ -109,12 +113,44 @@ Utils::boolStr (bool flag)
 string
 Utils::nonZero (uint64_t val)
 {
-  oss.str ("");
+  sOss.str ("");
 
   if (val != 0)
-    oss << "true";
+    sOss << "true";
   else
-    oss << "false";
+    sOss << "false";
 
-  return oss.str ();
+  return sOss.str ();
+}
+
+/// \brief Generate a string representation of an unsigned number in decimal
+///
+/// Useful when string versions of numbers need manipulation
+///
+/// \brief val  The number to represent.
+/// \return A string representation of \p val.
+string
+Utils::decStr (size_t val)
+{
+  sOss.str ("");
+  sOss << dec << val;
+  return sOss.str ();
+}
+
+/// \brief Generate a string to pad to a given length
+///
+/// \param[in] s  String to pad.
+/// \param[in] w  Width to which to pad.
+/// \param[in] c  Character with which to pad (default space char).
+/// \return The string of padding.
+string
+Utils::padStr (string s, size_t w, char c)
+{
+  size_t sLen = s.size ();
+
+  sPadding = "";
+  if ((w - sLen) > 0)
+    sPadding.insert (sPadding.begin (), w - sLen, c);
+
+  return sPadding;
 }

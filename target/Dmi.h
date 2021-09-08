@@ -1331,6 +1331,9 @@ public:
   Dmi () = delete;
   ~Dmi () = default;
 
+  // Delete the copy assignment operator
+  Dmi &operator= (const Dmi &) = delete;
+
   // Hart control API
   void selectHart (uint32_t h);
   uint32_t hartsellen ();

@@ -34,7 +34,7 @@ CF_STYLE := "{BasedOnStyle: GNU, \
               AllowShortFunctionsOnASingleLine: InlineOnly, \
               ColumnLimit: 80}"
 
-OBJS = Args.o Dmi.o DtmJtag.o Tap.o Utils.o VSim.o testbench.o
+OBJS = Args.o Dmi.o DtmJtag.o Tap.o Utils.o VSim.o testbench.o TestJtag.o
 
 .PHONY: all
 all: mem_init testbench.exe
@@ -53,11 +53,12 @@ mem_init:
 	ln -s $(MODEL_DIR)/mem_init $@
 
 # Header dependencies
-testbench.o: Args.h Dmi.h DtmJtag.h IDtm.h
+testbench.o: Args.h Dmi.h DtmJtag.h IDtm.h TestJtag.h Utils.h
 Args.o: Args.h
 Dmi.o: Dmi.h
 DtmJtag.o: IDtm.h DtmJtag.h Tap.h
 Tap.o: Tap.h VSim.h
+TestJtag.o: TestJtag.h Utils.h
 Utils.o: Utils.h
 VSim.o: VSim.h
 
@@ -72,6 +73,8 @@ Dmi.o: Dmi.cpp
 DtmJtag.o: DtmJtag.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 Tap.o: Tap.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+TestJtag.o: TestJtag.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 Utils.o: Utils.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<

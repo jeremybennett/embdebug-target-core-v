@@ -26,6 +26,10 @@ public:
   uint64_t clkPeriodNs () const;
   uint64_t durationNs () const;
   std::string vcd () const;
+  bool testStatus () const;
+  bool testGprs () const;
+  bool testFprs () const;
+  bool testCsrs () const;
 
   // Delete the copy assignment operator
   Args &operator= (const Args &) = delete;
@@ -39,6 +43,18 @@ private:
 
   /// \brief Name of the VCD file (empty if not specified)
   std::string mVcd;
+
+  /// \brief True if we should test hart status
+  bool mTestStatus;
+
+  /// \brief True if we should test GPRs
+  bool mTestGprs;
+
+  /// \brief True if we should test FPRs
+  bool mTestFprs;
+
+  /// \brief True if we should test CSRs
+  bool mTestCsrs;
 };
 
 #endif // ARGS_H
