@@ -149,7 +149,7 @@ Utils::padStr (string s, size_t w, char c)
   size_t sLen = s.size ();
 
   sPadding = "";
-  if ((w - sLen) > 0)
+  if (w > sLen)
     sPadding.insert (sPadding.begin (), w - sLen, c);
 
   return sPadding;

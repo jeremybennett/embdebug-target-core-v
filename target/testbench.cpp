@@ -97,7 +97,7 @@ main (int argc, char *argv[])
 
       // CSRs
       if (args->testCsrs ())
-        testsuite->testCsrs ();
+        testsuite->testCsrs (args->testFpuCsrs ());
     }
 
   // Delete the DMI, and hence DTM and TAP, which will save the VCD

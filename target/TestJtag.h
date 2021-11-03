@@ -31,7 +31,7 @@ public:
   void haltHart (uint32_t h);
   void testGprs ();
   void testFprs ();
-  void testCsrs ();
+  void testCsrs (bool testFpuCsrs);
 
 private:
   /// \brief How many registers to print per row

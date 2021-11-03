@@ -30,6 +30,7 @@ public:
   bool testGprs () const;
   bool testFprs () const;
   bool testCsrs () const;
+  bool testFpuCsrs () const;
 
   // Delete the copy assignment operator
   Args &operator= (const Args &) = delete;
@@ -50,11 +51,14 @@ private:
   /// \brief True if we should test GPRs
   bool mTestGprs;
 
-  /// \brief True if we should test FPRs
+  /// \brief True if we should test FPRs and FPU related CSRs
   bool mTestFprs;
 
   /// \brief True if we should test CSRs
   bool mTestCsrs;
+
+  /// \brief True if we should test FPU related CSRs
+  bool mTestFpuCsrs;
 };
 
 #endif // ARGS_H

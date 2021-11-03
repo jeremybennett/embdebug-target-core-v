@@ -206,8 +206,8 @@ TestJtag::testGprs ()
                 {
                   string regName = fullGprName (r);
                   cout << regName << ": " << Utils::padStr (regName, 10)
-                       << "Wrote: 0x" << testvals[i] << ", read back: 0x"
-                       << Utils::hexStr (rval) << endl;
+                       << "Wrote: 0x" << Utils::hexStr (testvals[i])
+		       << ", read back: 0x" << Utils::hexStr (rval) << endl;
                   succeeded = false;
                 }
             }
@@ -217,8 +217,8 @@ TestJtag::testGprs ()
                 {
                   string regName = fullGprName (r);
                   cout << regName << ": " << Utils::padStr (regName, 10)
-                       << "Wrote: 0x" << testvals[i] << ", read back: 0x"
-                       << Utils::hexStr (rval) << endl;
+                       << "Wrote: 0x" << Utils::hexStr (testvals[i])
+		       << ", read back: 0x" << Utils::hexStr (rval) << endl;
                   succeeded = false;
                 }
             }
@@ -275,8 +275,8 @@ TestJtag::testFprs ()
             {
               string regName = fullFprName (r);
               cout << regName << ": " << Utils::padStr (regName, 10)
-                   << "Wrote: 0x" << testvals[i] << ", read back: 0x"
-                   << Utils::hexStr (rval) << endl;
+                   << "Wrote: 0x" << Utils::hexStr (testvals[i])
+		   << ", read back: 0x" << Utils::hexStr (rval) << endl;
               succeeded = false;
             }
         }
@@ -293,13 +293,19 @@ TestJtag::testFprs ()
 ///
 /// \note There is no option to select a hart, it is presumed selected prior to
 ///       this.
+///
+/// \note The arguments allows testing of FPU related CSRs to be turned on/off
+///       independently of whether there is a FPU present.
+///
+/// \param[in] testFpuCsrs \c true if we should test the FPU related CSRs,
+///                        \c false otherwise.
 void
-TestJtag::testCsrs ()
+TestJtag::testCsrs (bool testFpuCsrs)
 {
   // Standard user CSRs
   cout << "Test reading standard user CSRs:" << endl;
   for (auto it = userCsrList.begin (); it != userCsrList.end (); it++)
-    if (mDmi->csrType (*it) != Dmi::FP)
+    if ((mDmi->csrType (*it) != Dmi::FP) || testFpuCsrs)
       {
         uint32_t val = mDmi->readCsr (*it);
         if (val != 0)
@@ -313,7 +319,7 @@ TestJtag::testCsrs ()
   cout << "Test reading custom user CSRs:" << endl;
   for (auto it = customUserCsrList.begin (); it != customUserCsrList.end ();
        it++)
-    if (mDmi->csrType (*it) != Dmi::FP)
+    if ((mDmi->csrType (*it) != Dmi::FP) || testFpuCsrs)
       {
         uint32_t val = mDmi->readCsr (*it);
         if (val != 0)
@@ -326,7 +332,7 @@ TestJtag::testCsrs ()
   // Standard machine CSRs
   cout << "Test reading standard machine CSRs:" << endl;
   for (auto it = machineCsrList.begin (); it != machineCsrList.end (); it++)
-    if (mDmi->csrType (*it) != Dmi::FP)
+    if ((mDmi->csrType (*it) != Dmi::FP) || testFpuCsrs)
       {
         uint32_t val = mDmi->readCsr (*it);
         if (val != 0)
@@ -395,6 +401,7 @@ TestJtag::fprAbiName (size_t regno)
 string
 TestJtag::fullFprName (size_t regno)
 {
-  sOss << fprAbiName (regno) << " (x" << regno << ")";
+  sOss.str ("");
+  sOss << fprAbiName (regno) << " (f" << regno << ")";
   return sOss.str ();
 }

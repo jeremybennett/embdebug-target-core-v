@@ -1347,10 +1347,16 @@ public:
   // Register access API
   uint32_t readCsr (uint16_t addr);
   void writeCsr (uint16_t addr, uint32_t val);
-  uint32_t readGpr (size_t regNum);
-  void writeGpr (size_t regNum, uint32_t val);
-  uint32_t readFpr (size_t regNum);
-  void writeFpr (size_t regNum, uint32_t val);
+  uint32_t readGpr (std::size_t regNum);
+  void writeGpr (std::size_t regNum, uint32_t val);
+  uint32_t readFpr (std::size_t regNum);
+  void writeFpr (std::size_t regNum, uint32_t val);
+
+  // Memory access API
+  bool readMem (uint64_t addr, std::size_t nBytes,
+		std::unique_ptr<uint8_t *> & buf);
+  bool writeMem (uint64_t addr, std::size_t nBytes,
+		 std::unique_ptr<uint8_t *> & buf);
 
   // API for the underlying DTM
   void dtmReset ();

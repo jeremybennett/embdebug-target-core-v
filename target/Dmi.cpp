@@ -227,6 +227,16 @@ Dmi::writeFpr (size_t regNum, uint32_t val)
   return writeCsr (FPR_BASE + static_cast<uint16_t> (regNum), val);
 }
 
+bool
+Dmi::readMem (uint64_t addr, size_t nBytes, unique_ptr<uint8_t *> & buf)
+{
+}
+
+bool
+Dmi::writeMem (uint64_t addr, size_t nBytes, unique_ptr<uint8_t *> & buf)
+{
+}
+
 /// \brief Reset the underlying DTM.
 void
 Dmi::dtmReset ()
