@@ -67,7 +67,7 @@ main (int argc, char *argv[])
 
   // Count the harts and create the testsuite
   uint32_t numHarts = countHarts (dmi);
-  unique_ptr<TestJtag> testsuite (new TestJtag (dmi, numHarts));
+  unique_ptr<TestJtag> testsuite (new TestJtag (dmi, numHarts, args->seed ()));
 
   // Explore the target
   cout << "Num harts: " << numHarts << endl << endl;
@@ -97,7 +97,18 @@ main (int argc, char *argv[])
 
       // CSRs
       if (args->testCsrs ())
-        testsuite->testCsrs (args->testFpuCsrs ());
+        testsuite->testCsrs ();
+
+      // Memory
+      if (args->testMem ())
+        {
+          size_t mb = args->maxBlock ();
+          testsuite->testMem ("boot rom", 0x1a000000, 0x1a03ffff, mb, true);
+          testsuite->testMem ("memory bank 0", 0x1c000000, 0x8000, mb, false);
+          testsuite->testMem ("memory bank 1", 0x1c008000, 0x8000, mb, false);
+          testsuite->testMem ("memory bank interleaved", 0x1c010000, 0x80000,
+                              mb, false);
+        }
     }
 
   // Delete the DMI, and hence DTM and TAP, which will save the VCD

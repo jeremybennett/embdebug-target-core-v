@@ -5,6 +5,8 @@
 // Copyright (C) 2021 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
+#include <algorithm>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -16,9 +18,11 @@
 using std::cerr;
 using std::cout;
 using std::endl;
+using std::memset;
 using std::ostringstream;
 using std::size_t;
 using std::string;
+using std::unique_ptr;
 using std::vector;
 
 // Instantiate the standard user CSR list
@@ -101,12 +105,18 @@ ostringstream TestJtag::sOss;
 
 /// \brief Constructor for the JTAG test suite
 ///
+/// Initialize the random number generator
+///
 /// \brief dmi_       Reference to the DMI we are using
 /// \brief numHarts_  Number of harts available to this debug interface.
-TestJtag::TestJtag (std::unique_ptr<Dmi> &dmi_, uint32_t numHarts_)
+/// \brief seed_      Seed for the random number generator.
+TestJtag::TestJtag (std::unique_ptr<Dmi> &dmi_, uint32_t numHarts_,
+                    uint32_t seed_)
     : mDmi (dmi_), mNumHarts (numHarts_), mDmstatus (dmi_->dmstatus ()),
-      mHartinfo (dmi_->hartinfo ()), mAbstractcs (dmi_->abstractcs ())
+      mHartinfo (dmi_->hartinfo ()), mAbstractcs (dmi_->abstractcs ()),
+      mSbcs (dmi_->sbcs ())
 {
+  srand (seed_);
 }
 
 /// \brief Read \c hartinfo and \c abstractcs for a hart.
@@ -117,17 +127,26 @@ TestJtag::hartStatus (uint32_t h)
 {
   mDmi->selectHart (h);
 
+  mSbcs->reset ();
   mHartinfo->read ();
   mHartinfo->prettyPrint (false);
   cout << "hartinfo: 0x" << mHartinfo;
   mHartinfo->prettyPrint (true);
   cout << " " << mHartinfo << endl;
 
+  mSbcs->reset ();
   mAbstractcs->read ();
   mAbstractcs->prettyPrint (false);
   cout << "abstractcs: 0x" << mAbstractcs;
   mAbstractcs->prettyPrint (true);
-  cout << " " << mAbstractcs << endl << endl;
+  cout << " " << mAbstractcs << endl;
+
+  mSbcs->reset ();
+  mSbcs->read ();
+  mSbcs->prettyPrint (false);
+  cout << "sbcs: 0x" << mSbcs;
+  mSbcs->prettyPrint (true);
+  cout << " " << mSbcs << endl << endl << endl;
 }
 
 /// \brief Report the PC for the currently selected hart
@@ -136,7 +155,13 @@ TestJtag::hartStatus (uint32_t h)
 void
 TestJtag::reportPC ()
 {
-  cout << "PC = 0x" << Utils::hexStr (mDmi->readCsr (Dmi::Csr::DPC)) << endl;
+  uint32_t pc;
+  Dmi::Abstractcs::CmderrVal err = mDmi->readCsr (Dmi::Csr::DPC, pc);
+
+  if (err == Dmi::Abstractcs::CMDERR_NONE)
+    cout << "PC = 0x" << Utils::hexStr (pc) << endl;
+  else
+    cout << "PC read error " << err << endl;
 }
 
 /// \brief Halt the specified hart and report its status
@@ -173,13 +198,16 @@ TestJtag::testGprs ()
   for (size_t r = 0; r < 32; r++)
     {
       string regName = fullGprName (r);
-      regval[r] = mDmi->readGpr (r);
+      Dmi::Abstractcs::CmderrVal err = mDmi->readGpr (r, regval[r]);
 
       if ((r % REGS_PER_ROW) == 0)
         cout << "  ";
 
-      cout << regName << Utils::padStr (regName, 10) << " = "
-           << Utils::hexStr (regval[r]);
+      if (err == Dmi::Abstractcs::CMDERR_NONE)
+        cout << regName << Utils::padStr (regName, 10) << " = "
+             << Utils::hexStr (regval[r]);
+      else
+        cout << regName << Utils::padStr (regName, 10) << " " << err;
 
       if (((r % REGS_PER_ROW) == (REGS_PER_ROW - 1)) | (r == 31))
         cout << endl;
@@ -196,8 +224,26 @@ TestJtag::testGprs ()
 
       for (size_t i = 0; i < (sizeof (testvals) / sizeof (testvals[0])); i++)
         {
-          mDmi->writeGpr (r, testvals[i]);
-          uint32_t rval = mDmi->readGpr (r);
+          Dmi::Abstractcs::CmderrVal err = mDmi->writeGpr (r, testvals[i]);
+
+          if (err != Dmi::Abstractcs::CMDERR_NONE)
+            {
+              string regName = fullGprName (r);
+              cout << regName << ": " << Utils::padStr (regName, 10)
+                   << "Write error: " << err << endl;
+              break;
+            }
+
+          uint32_t rval;
+          err = mDmi->readGpr (r, rval);
+
+          if (err != Dmi::Abstractcs::CMDERR_NONE)
+            {
+              string regName = fullGprName (r);
+              cout << regName << ": " << Utils::padStr (regName, 10)
+                   << "Read error: " << err << endl;
+              break;
+            }
 
           // R0 should never read back zero,
           if (r == 0)
@@ -207,7 +253,7 @@ TestJtag::testGprs ()
                   string regName = fullGprName (r);
                   cout << regName << ": " << Utils::padStr (regName, 10)
                        << "Wrote: 0x" << Utils::hexStr (testvals[i])
-		       << ", read back: 0x" << Utils::hexStr (rval) << endl;
+                       << ", read back: 0x" << Utils::hexStr (rval) << endl;
                   succeeded = false;
                 }
             }
@@ -218,7 +264,7 @@ TestJtag::testGprs ()
                   string regName = fullGprName (r);
                   cout << regName << ": " << Utils::padStr (regName, 10)
                        << "Wrote: 0x" << Utils::hexStr (testvals[i])
-		       << ", read back: 0x" << Utils::hexStr (rval) << endl;
+                       << ", read back: 0x" << Utils::hexStr (rval) << endl;
                   succeeded = false;
                 }
             }
@@ -245,13 +291,17 @@ TestJtag::testFprs ()
   for (size_t r = 0; r < 32; r++)
     {
       string regName = fullFprName (r);
-      regval[r] = mDmi->readFpr (r + 0x20);
+      Dmi::Abstractcs::CmderrVal err = mDmi->readFpr (r + 0x20, regval[r]);
 
       if ((r % REGS_PER_ROW) == 0)
         cout << "  ";
 
-      cout << regName << Utils::padStr (regName, 10) << " = "
-           << Utils::hexStr (regval[r]);
+      if (err == Dmi::Abstractcs::CMDERR_NONE)
+        cout << regName << Utils::padStr (regName, 10) << " = "
+             << Utils::hexStr (regval[r]);
+      else
+        cout << regName << Utils::padStr (regName, 10) << " = "
+             << Utils::hexStr (regval[r]);
 
       if (((r % REGS_PER_ROW) == (REGS_PER_ROW - 1)) | (r == 31))
         cout << endl;
@@ -268,15 +318,33 @@ TestJtag::testFprs ()
 
       for (size_t i = 0; i < (sizeof (testvals) / sizeof (testvals[0])); i++)
         {
-          mDmi->writeFpr (r + 0x20, testvals[i]);
-          uint32_t rval = mDmi->readFpr (r + 0x20);
+          Dmi::Abstractcs::CmderrVal err
+              = mDmi->writeFpr (r + 0x20, testvals[i]);
+          if (err != Dmi::Abstractcs::CMDERR_NONE)
+            {
+              string regName = fullFprName (r);
+              cout << regName << ": " << Utils::padStr (regName, 10)
+                   << "Write error: " << err << endl;
+              break;
+            }
+
+          uint32_t rval;
+          err = mDmi->readFpr (r + 0x20, rval);
+
+          if (err != Dmi::Abstractcs::CMDERR_NONE)
+            {
+              string regName = fullFprName (r);
+              cout << regName << ": " << Utils::padStr (regName, 10)
+                   << "Read error: " << err << endl;
+              break;
+            }
 
           if (rval != testvals[i])
             {
               string regName = fullFprName (r);
               cout << regName << ": " << Utils::padStr (regName, 10)
                    << "Wrote: 0x" << Utils::hexStr (testvals[i])
-		   << ", read back: 0x" << Utils::hexStr (rval) << endl;
+                   << ", read back: 0x" << Utils::hexStr (rval) << endl;
               succeeded = false;
             }
         }
@@ -293,54 +361,211 @@ TestJtag::testFprs ()
 ///
 /// \note There is no option to select a hart, it is presumed selected prior to
 ///       this.
-///
-/// \note The arguments allows testing of FPU related CSRs to be turned on/off
-///       independently of whether there is a FPU present.
-///
-/// \param[in] testFpuCsrs \c true if we should test the FPU related CSRs,
-///                        \c false otherwise.
 void
-TestJtag::testCsrs (bool testFpuCsrs)
+TestJtag::testCsrs ()
 {
   // Standard user CSRs
   cout << "Test reading standard user CSRs:" << endl;
   for (auto it = userCsrList.begin (); it != userCsrList.end (); it++)
-    if ((mDmi->csrType (*it) != Dmi::FP) || testFpuCsrs)
+    if (mDmi->csrType (*it) != Dmi::FP)
       {
-        uint32_t val = mDmi->readCsr (*it);
-        if (val != 0)
+        uint32_t val;
+        Dmi::Abstractcs::CmderrVal err = mDmi->readCsr (*it, val);
+
+        if (err == Dmi::Abstractcs::CMDERR_NONE)
           cout << "Standard user CSR " << mDmi->csrName (*it) << " (0x"
                << Utils::hexStr (*it, 3) << ") = 0x" << Utils::hexStr (val)
                << endl;
+        else
+          cout << "Standard user CSR " << mDmi->csrName (*it)
+               << ": read error: " << Dmi::Abstractcs::cmderrName (err) << endl;
       }
+
   cout << endl;
 
   // Custom user CSRs
   cout << "Test reading custom user CSRs:" << endl;
   for (auto it = customUserCsrList.begin (); it != customUserCsrList.end ();
        it++)
-    if ((mDmi->csrType (*it) != Dmi::FP) || testFpuCsrs)
+    if (mDmi->csrType (*it) != Dmi::FP)
       {
-        uint32_t val = mDmi->readCsr (*it);
-        if (val != 0)
+        uint32_t val;
+        Dmi::Abstractcs::CmderrVal err = mDmi->readCsr (*it, val);
+
+        if (err == Dmi::Abstractcs::CMDERR_NONE)
           cout << "Custom user CSR " << mDmi->csrName (*it) << " (0x"
                << Utils::hexStr (*it, 3) << ") = 0x" << Utils::hexStr (val)
                << endl;
+        else
+          cout << "Custom user CSR " << mDmi->csrName (*it)
+               << ": read error: " << Dmi::Abstractcs::cmderrName (err) << endl;
       }
   cout << endl;
 
   // Standard machine CSRs
   cout << "Test reading standard machine CSRs:" << endl;
   for (auto it = machineCsrList.begin (); it != machineCsrList.end (); it++)
-    if ((mDmi->csrType (*it) != Dmi::FP) || testFpuCsrs)
+    if (mDmi->csrType (*it) != Dmi::FP)
       {
-        uint32_t val = mDmi->readCsr (*it);
-        if (val != 0)
+        uint32_t val;
+        Dmi::Abstractcs::CmderrVal err = mDmi->readCsr (*it, val);
+
+        if (err == Dmi::Abstractcs::CMDERR_NONE)
           cout << "Standard machine CSR " << mDmi->csrName (*it) << " (0x"
                << Utils::hexStr (*it, 3) << ") = 0x" << Utils::hexStr (val)
                << endl;
+        else
+          cout << "Standard machine CSR " << mDmi->csrName (*it)
+               << ": read error: " << Dmi::Abstractcs::cmderrName (err) << endl;
       }
   cout << endl;
+}
+
+/// \brief Test memory
+///
+/// Read from memory, then write back and check memory has changed.
+///
+/// It is generally too slow to access all the memory, so instead we choose
+/// three regions
+///
+/// 1. A block beginning at the start of the region, with an arbitrarily
+///    aligned end point.
+/// 2. A block in the middle of the region with arbitrarily aligned start and
+///    end points.
+/// 3. A block ending at the end of the region, with an arbitrarily aligned
+///    start point.
+///
+/// We read the values in the region and save them, the write values in and
+/// read them back and verify that the values are unchanged.
+///
+/// \param[in] region    Textual name of the region
+/// \param[in] baseAddr  Base address of the region
+/// \param[in] len       Length of the region in octets
+/// \param[in] maxBlock  Maximum size of memory block to test
+/// \param[in] readOnly  \c true if this is a read only block, \c false
+///                      otherwise.
+void
+TestJtag::testMem (const char *region, uint32_t baseAddr, uint32_t len,
+                   size_t maxBlock, bool readOnly)
+{
+  testMemBlock (region, baseAddr, 1 + Utils::rand (maxBlock), readOnly);
+
+  uint32_t midBlockStart = baseAddr + maxBlock + Utils::rand (len - maxBlock);
+  testMemBlock (region, midBlockStart, 1 + Utils::rand (maxBlock), readOnly);
+
+  uint32_t endBlockLen = Utils::rand (maxBlock);
+  testMemBlock (region, baseAddr + len - endBlockLen, endBlockLen, readOnly);
+}
+
+/// \brief Utility to test a memory block
+///
+/// - First read the memory into an array
+/// - Then check reading and writing (0, 0xff, random)
+/// - Then write back original values
+///
+/// If the memory is read only, we only do the first of these.
+///
+/// \param[in] region    Textual name of the region
+/// \param[in] baseAddr  Base address of the block
+/// \param[in] len       Length of the block in octets
+/// \param[in] readOnly  \c true if this is a read only block, \c false
+///                      otherwise.
+void
+TestJtag::testMemBlock (const char *region, uint32_t baseAddr, uint32_t len,
+                        bool readOnly)
+{
+  cout << "Testing " << (readOnly ? "read only " : "read/write")
+       << "memory region \"" << region << "\": 0x"
+       << Utils::hexStr (baseAddr, 8) << " - 0x"
+       << Utils::hexStr (baseAddr + len - 1, 8) << endl;
+
+  /// Buffers for various stages
+  unique_ptr<uint8_t[]> origBuf (new uint8_t[len]); // Original data
+  unique_ptr<uint8_t[]> zeroBuf (new uint8_t[len]); // Buffer of zeros
+  unique_ptr<uint8_t[]> onesBuf (new uint8_t[len]); // Buffer of ones
+  unique_ptr<uint8_t[]> randBuf (new uint8_t[len]); // Random data
+
+  // Set up the pre-allocated values
+  (void)memset (zeroBuf.get (), 0, len);
+  (void)memset (onesBuf.get (), 0xff, len);
+
+  for (size_t i = 0; i < len; i++)
+    randBuf[i] = static_cast<uint8_t> (Utils::rand (0x100));
+
+  // Read the original values
+  Dmi::Sbcs::SberrorVal err = mDmi->readMem (baseAddr, len, origBuf);
+  if (err != Dmi::Sbcs::SBERR_NONE)
+    {
+      cout << "Memory block in " << region << ": original readMem (0x"
+           << Utils::hexStr (baseAddr, 8) << ", " << len
+           << "): read error: " << Dmi::Sbcs::sberrorName (err) << endl;
+      return;
+    }
+
+  // If we are read only, then this is all we can do
+  if (readOnly)
+    return;
+
+  // Write and then read back zeros, then ones, then random
+  if (!testWriteRead (region, "zero", baseAddr, len, zeroBuf))
+    return;
+  if (!testWriteRead (region, "ones", baseAddr, len, onesBuf))
+    return;
+  if (!testWriteRead (region, "random", baseAddr, len, randBuf))
+    return;
+
+  /// Restore original values
+  err = mDmi->writeMem (baseAddr, len, origBuf);
+  if (err != Dmi::Sbcs::SBERR_NONE)
+    {
+      cout << "Memory block  in " << region << ": original writeMem (0x"
+           << Utils::hexStr (baseAddr, 8) << ", " << len
+           << "): write error: " << Dmi::Sbcs::sberrorName (err) << endl;
+    }
+}
+
+/// \brief Utility to write and read back a memory block
+///
+/// \param[in] region    Textual name of the region
+/// \param[in] testName  Name of the test
+/// \param[in] baseAddr  Base address of the block
+/// \param[in] len       Length of the block in octets
+/// \param[in] origBuf   Buffer of values to write
+/// \return \c true on if all reads/write are sucessful, even if there are
+///         mismatches, \c false otherwise.
+bool
+TestJtag::testWriteRead (const char *region, const char *testName,
+                         uint32_t baseAddr, uint32_t len,
+                         unique_ptr<uint8_t[]> &origBuf)
+{
+  unique_ptr<uint8_t[]> buf (new uint8_t[len]); // Buffer to read into
+
+  Dmi::Sbcs::SberrorVal err = mDmi->writeMem (baseAddr, len, origBuf);
+  if (err != Dmi::Sbcs::SBERR_NONE)
+    {
+      cout << "Memory block  in " << region << ": " << testName
+           << " writeMem (0x" << Utils::hexStr (baseAddr, 8) << ", " << len
+           << "): write error: " << Dmi::Sbcs::sberrorName (err) << endl;
+      return false;
+    }
+
+  err = mDmi->readMem (baseAddr, len, buf);
+  if (err != Dmi::Sbcs::SBERR_NONE)
+    {
+      cout << "Memory block  in " << region << ": " << testName
+           << " readMem (0x" << Utils::hexStr (baseAddr, 8) << ", " << len
+           << "): read error: " << Dmi::Sbcs::sberrorName (err) << endl;
+      return false;
+    }
+
+  for (size_t i = 0; i < len; i++)
+    if (buf[i] != origBuf[i])
+      cout << "- " << region << ", test " << testName << ": at 0x"
+           << Utils::hexStr (baseAddr + i, 8) << ": wrote 0x"
+           << Utils::hexStr (origBuf[i], 2) << ", read back 0x"
+           << Utils::hexStr (buf[i], 2) << endl;
+
+  return true;
 }
 
 /// \brief Utility to convert GPR number to ABI register name.

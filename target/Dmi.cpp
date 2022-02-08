@@ -5,6 +5,7 @@
 // Copyright (C) 2021 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -17,6 +18,8 @@ using std::cout;
 using std::dec;
 using std::endl;
 using std::hex;
+using std::max;
+using std::min;
 using std::ostream;
 using std::setfill;
 using std::setw;
@@ -148,10 +151,11 @@ Dmi::csrType (const uint16_t csrAddr) const
 
 /// \brief Read a CSR.
 ///
-/// \param[in] addr  Address of the CSR to read.
-/// \return  The value of the CSR read.
-uint32_t
-Dmi::readCsr (uint16_t addr)
+/// \param[in]  addr  Address of the CSR to read.
+/// \param[out] res   The result of the read - only valid if there is no error.
+/// \return  The error code for the access.
+Dmi::Abstractcs::CmderrVal
+Dmi::readCsr (uint16_t addr, uint32_t &res)
 {
   mCommand->reset ();
   mCommand->cmdtype (Dmi::Command::ACCESS_REG);
@@ -161,8 +165,49 @@ Dmi::readCsr (uint16_t addr)
   mCommand->aaregno (addr);
   mCommand->write ();
 
-  mData->read (0);
-  return mData->data (0);
+  // Check for any error
+  mAbstractcs->read ();
+  Abstractcs::CmderrVal err = mAbstractcs->cmderr ();
+
+  switch (err)
+    {
+    case Abstractcs::CMDERR_NONE:
+      // Good result, read the data into the result
+      mData->read (0);
+      res = mData->data (0);
+      return err;
+
+    case Abstractcs::CMDERR_BUSY:
+      // Debug unit is busy. This should not happen. Reset the hart, then the
+      // debug unit.
+      //
+      // TODO We should allow retry.
+
+      // Toggle ndmreset
+      for (bool flag : { true, false })
+        {
+          mDmcontrol->reset ();
+          mDmcontrol->ndmreset (flag);
+          mDmcontrol->write ();
+        }
+
+      // Toggle dmactive
+      for (bool flag : { false, true })
+        {
+          mDmcontrol->reset ();
+          mDmcontrol->dmactive (flag);
+          mDmcontrol->write ();
+        }
+
+      return err;
+
+    default:
+      // Otherwise bad result, clear the error. If the error is "busy", then
+      // we may have to reset the hart and then the debug unit.
+      mAbstractcs->cmderrClear ();
+      mAbstractcs->write ();
+      return err;
+    }
 };
 
 /// \brief Write a CSR.
@@ -171,7 +216,8 @@ Dmi::readCsr (uint16_t addr)
 ///
 /// \param[in] addr  Address of the CSR to write.
 /// \param[in] val   The value to write to the CSR.
-void
+/// \return  The error code for the access.
+Dmi::Abstractcs::CmderrVal
 Dmi::writeCsr (uint16_t addr, uint32_t val)
 {
   mData->reset (0);
@@ -185,23 +231,69 @@ Dmi::writeCsr (uint16_t addr, uint32_t val)
   mCommand->aawrite (true);
   mCommand->aaregno (addr);
   mCommand->write ();
+
+  // Check for any error
+  mAbstractcs->read ();
+  Abstractcs::CmderrVal err = mAbstractcs->cmderr ();
+
+  switch (err)
+    {
+    case Abstractcs::CMDERR_NONE:
+      // Good result, nothing to do.
+      return err;
+
+    case Abstractcs::CMDERR_BUSY:
+      // Debug unit is busy. This should not happen. Reset the hart, then the
+      // debug unit.
+      //
+      // TODO We should allow retry.
+
+      // Toggle ndmreset
+      for (bool flag : { true, false })
+        {
+          mDmcontrol->reset ();
+          mDmcontrol->ndmreset (flag);
+          mDmcontrol->write ();
+        }
+
+      // Toggle dmactive
+      for (bool flag : { false, true })
+        {
+          mDmcontrol->reset ();
+          mDmcontrol->dmactive (flag);
+          mDmcontrol->write ();
+        }
+
+      return err;
+
+    default:
+      // Otherwise bad result, clear the error. If the error is "busy", then
+      // we may have to reset the hart and then the debug unit.
+      mAbstractcs->cmderrClear ();
+      mAbstractcs->write ();
+      return err;
+    }
 };
 
 /// \brief Read a general purpose register
 ///
 /// \param[in] regNum  Number of the register to read.
-/// \return  The value of the register read.
-uint32_t
-Dmi::readGpr (size_t regNum)
+/// \param[out] res   The result of the read - only valid if there is no error.
+/// \return  The error code for the access.
+Dmi::Abstractcs::CmderrVal
+Dmi::readGpr (size_t regNum, uint32_t &res)
 {
-  return readCsr (GPR_BASE + static_cast<uint16_t> (regNum));
+  Abstractcs::CmderrVal err
+      = readCsr (GPR_BASE + static_cast<uint16_t> (regNum), res);
+  return err;
 }
 
 /// \brief Write a general purpose register
 ///
 /// \param[in] regNum  Number of the register to write.
 /// \param[in] val     The value to write to the register.
-void
+/// \return  The error code for the access.
+Dmi::Abstractcs::CmderrVal
 Dmi::writeGpr (size_t regNum, uint32_t val)
 {
   return writeCsr (GPR_BASE + static_cast<uint16_t> (regNum), val);
@@ -210,31 +302,316 @@ Dmi::writeGpr (size_t regNum, uint32_t val)
 /// \brief Read a floating point register
 ///
 /// \param[in] regNum  Number of the register to read.
-/// \return  The value of the register read.
-uint32_t
-Dmi::readFpr (size_t regNum)
+/// \param[out] res   The result of the read - only valid if there is no error.
+/// \return  The error code for the access.
+Dmi::Abstractcs::CmderrVal
+Dmi::readFpr (size_t regNum, uint32_t &res)
 {
-  return readCsr (FPR_BASE + static_cast<uint16_t> (regNum));
+  Abstractcs::CmderrVal err
+      = readCsr (FPR_BASE + static_cast<uint16_t> (regNum), res);
+  return err;
 }
 
 /// \brief Write a floating point register
 ///
 /// \param[in] regNum  Number of the register to write.
 /// \param[in] val     The value to write to the register.
-void
+/// \return  The error code for the access.
+Dmi::Abstractcs::CmderrVal
 Dmi::writeFpr (size_t regNum, uint32_t val)
 {
   return writeCsr (FPR_BASE + static_cast<uint16_t> (regNum), val);
 }
 
-bool
-Dmi::readMem (uint64_t addr, size_t nBytes, unique_ptr<uint8_t *> & buf)
+/// \brief Read from memory
+///
+/// We can't use the abstract command approach, since the MemoryAccess command
+/// is not implemented. For now we use the System Bus.
+///
+/// \note This is problematic, since the system bus only permits 32-bit reads,
+///       potentially troublesome for volatile memory locations.
+///
+/// \todo There is a known hardware design issue, where system bus accesses
+///       always succeed, even if there is no memory at the location. Reads
+///       will return 0xbadcab1e.
+///
+/// \param[in]  addr    Address to read from
+/// \param[in]  nBytes  Number of bytes to read
+/// \param[out] buf     Buffer for storing the bytes read
+/// \return  The error code for the access.
+Dmi::Sbcs::SberrorVal
+Dmi::readMem (uint64_t addr, size_t nBytes, unique_ptr<uint8_t[]> &buf)
 {
+  uint32_t startAddr = addr & 0xfffffffc;
+  uint32_t endAddr = (addr + nBytes + 3) & 0xfffffffc;
+  size_t nWords = (endAddr - startAddr) / 4;
+  size_t bufIndex = 0;
+  uint32_t w;
+
+  // Set up systembus to read on setting the address or reading the data and
+  // autoincrement if we need to read more than one word
+  mSbcs->reset ();
+  mSbcs->sbreadonaddr (true);
+  mSbcs->sbaccess (Sbcs::SBACCESS_32);
+  mSbcs->sbautoincrement (nWords > 1);
+  mSbcs->sbreadondata (true);
+  mSbcs->sberrorClear ();
+  mSbcs->write ();
+
+  // Initial word, which may be different from the actual start address if the
+  // start is misaligned. Setting the address will cause the first read.
+  mSbaddress->reset (0);
+  mSbaddress->sbaddress (0, startAddr);
+  mSbaddress->write (0);
+
+  do
+    mSbcs->read ();
+  while (mSbcs->sbbusy ());
+
+  Sbcs::SberrorVal err = mSbcs->sberror ();
+  if (err != Sbcs::SBERR_NONE)
+    return err;
+
+  // Get the read data, which will trigger the next read if we have
+  // autoincrement set.
+  mSbdata->read (0);
+  w = mSbdata->sbdata (0);
+
+  size_t offset = (addr - startAddr);
+  for (size_t i = offset; i < min (nBytes, static_cast<size_t> (4)); i++)
+    {
+      buf[bufIndex++] = static_cast<uint8_t> ((w >> (8 * i)) & 0xff);
+    }
+
+  startAddr += 4;
+  if (startAddr == endAddr) // Read was just a single word or less
+    return Sbcs::SBERR_NONE;
+
+  // Bulk of the words
+  for (; startAddr < (endAddr - 4); startAddr += 4)
+    {
+      do
+        mSbcs->read ();
+      while (mSbcs->sbbusy ());
+
+      err = mSbcs->sberror ();
+      if (err != Sbcs::SBERR_NONE)
+        return err;
+
+      mSbdata->read (0);
+      w = mSbdata->sbdata (0);
+
+      for (size_t i = 0; i < 4; i++)
+        {
+          buf[bufIndex++] = static_cast<uint8_t> (w & 0xff);
+          w = w >> 8;
+        }
+    }
+
+  // Final word, which may be different the actual end address if the
+  // end is misaligned
+  do
+    mSbcs->read ();
+  while (mSbcs->sbbusy ());
+
+  err = mSbcs->sberror ();
+  if (err != Sbcs::SBERR_NONE)
+    return err;
+
+  mSbdata->read (0);
+  w = mSbdata->sbdata (0);
+
+  offset = endAddr - (addr + nBytes);
+  for (size_t i = 0; i < 4 - offset; i++)
+    {
+      buf[bufIndex++] = static_cast<uint8_t> (w & 0xff);
+      w = w >> 8;
+    }
+
+  return Sbcs::SBERR_NONE;
 }
 
-bool
-Dmi::writeMem (uint64_t addr, size_t nBytes, unique_ptr<uint8_t *> & buf)
+/// \brief Write to memory
+///
+/// We can't use the abstract command approach, since the MemoryAccess command
+/// is not implemented. For now we use the System Bus.
+///
+/// \note This is problematic, since the system bus only permits 32-bit writes,
+///       potentially troublesome for volatile memory locations.
+///
+/// \todo There is a known hardware design issue, where system bus accesses
+///       always succeed, even if there is no memory at the location.
+///
+/// \param[in  addr    Address to write to
+/// \param[in] nBytes  Number of bytes to write
+/// \param[in] buf     Buffer with the bytes to write
+/// \return  The error code for the access.
+Dmi::Sbcs::SberrorVal
+Dmi::writeMem (uint64_t addr, size_t nBytes, unique_ptr<uint8_t[]> &buf)
 {
+  uint32_t startAddr = addr & 0xfffffffc;
+  uint32_t endAddr = (addr + nBytes + 3) & 0xfffffffc;
+  bool startAligned = startAddr == addr;
+  bool endAligned = endAddr == (addr + nBytes);
+  size_t nWords = (endAddr - startAddr) / 4;
+  size_t bufIndex = 0;
+  uint32_t w;
+
+  // Set up systembus
+  // - we read on setting the address if the initial word is misaligned
+  // - we don't read on reading the data
+  // - we will set autoincrement if we need to write more than one word, but
+  //   not until we have done the initial word read if necessary.
+  mSbcs->reset ();
+  mSbcs->sbreadonaddr (!startAligned);
+  mSbcs->sbaccess (Sbcs::SBACCESS_32);
+  mSbcs->sbautoincrement (nWords > 1);
+  mSbcs->sbreadondata (false);
+  mSbcs->sberrorClear ();
+  mSbcs->write ();
+
+  // Initial word, which may be different from the actual start address if the
+  // start is misaligned. If we are misaligned this will read the first word.
+  mSbaddress->reset (0);
+  mSbaddress->sbaddress (0, startAddr);
+  mSbaddress->write (0);
+
+  // If we are misaligned read data at the first word into w.
+  if (!startAligned)
+    {
+      do
+        mSbcs->read ();
+      while (mSbcs->sbbusy ());
+
+      Sbcs::SberrorVal err = mSbcs->sberror ();
+      if (err != Sbcs::SBERR_NONE)
+        return err;
+
+      // Get the read data
+      mSbdata->read (0);
+      w = mSbdata->sbdata (0);
+
+      // Clear the read on address flag if set and reset the start address
+      mSbcs->reset ();
+      mSbcs->sbreadonaddr (false);
+      mSbcs->sbaccess (Sbcs::SBACCESS_32);
+      mSbcs->sbautoincrement (nWords > 1);
+      mSbcs->sbreadondata (false);
+      mSbcs->sberrorClear ();
+      mSbcs->write ();
+
+      mSbaddress->reset (0);
+      mSbaddress->sbaddress (0, startAddr);
+      mSbaddress->write (0);
+    }
+
+  // Create the first word to write
+  size_t offset = (addr - startAddr);
+  for (size_t i = offset; i < min (nBytes, static_cast<std::size_t> (4)); i++)
+    {
+      w &= ~((0x000000ff) << (8 * i));
+      w |= static_cast<uint32_t> (buf[bufIndex++]) << (8 * i);
+    }
+
+  // Write the value into sbdata, which will trigger the write and wait for it
+  // to complete.
+  mSbdata->sbdata (0, w);
+  mSbdata->write (0);
+
+  do
+    mSbcs->read ();
+  while (mSbcs->sbbusy ());
+
+  Sbcs::SberrorVal err = mSbcs->sberror ();
+  if (err != Sbcs::SBERR_NONE)
+    return err;
+
+  startAddr += 4;
+  if (startAddr == endAddr) // Write was just a single word or less
+    return Sbcs::SBERR_NONE;
+
+  // Write the bulk of the words
+  for (; startAddr < (endAddr - 4); startAddr += 4)
+    {
+      // Create the word
+      w = 0;
+      for (size_t i = 0; i < 4; i++)
+        w |= static_cast<uint32_t> (buf[bufIndex++]) << (i * 8);
+
+      // Write the value into sbdata, which will trigger the write and wait
+      // for it to complete.
+      mSbdata->sbdata (0, w);
+      mSbdata->write (0);
+
+      do
+        mSbcs->read ();
+      while (mSbcs->sbbusy ());
+
+      err = mSbcs->sberror ();
+      if (err != Sbcs::SBERR_NONE)
+        return err;
+    }
+
+  // Final word, which may be different to the actual end address if the
+  // end is misaligned
+
+  // Set the read on address flag if the end is misaligned
+  if (!endAligned)
+    {
+      mSbcs->reset ();
+      mSbcs->sbreadonaddr (true);
+      mSbcs->sbaccess (Sbcs::SBACCESS_32);
+      mSbcs->sbautoincrement (false);
+      mSbcs->sbreadondata (false);
+      mSbcs->sberrorClear ();
+      mSbcs->write ();
+
+      // Trigger a read by writing the current address
+      mSbaddress->reset (0);
+      mSbaddress->sbaddress (0, startAddr);
+      mSbaddress->write (0);
+
+      do
+        mSbcs->read ();
+      while (mSbcs->sbbusy ());
+
+      err = mSbcs->sberror ();
+      if (err != Sbcs::SBERR_NONE)
+        return err;
+
+      // Get the read data
+      mSbdata->read (0);
+      w = mSbdata->sbdata (0);
+
+      // Clear the read on address flag if set
+      mSbcs->reset ();
+      mSbcs->sbreadonaddr (false);
+      mSbcs->sbaccess (Sbcs::SBACCESS_32);
+      mSbcs->sbautoincrement (nWords > 1);
+      mSbcs->sbreadondata (false);
+      mSbcs->sberrorClear ();
+      mSbcs->write ();
+    }
+
+  // Create the word to write and then write it.
+  offset = endAddr - (addr + nBytes);
+  for (size_t i = 0; i < 4 - offset; i++)
+    {
+      w &= ~(0x000000ff << (8 * i));
+      w |= static_cast<uint32_t> (buf[bufIndex++]) << (8 * i);
+    }
+
+  // Write the value into sbdata, which will trigger the write and wait for it
+  // to complete.
+  mSbdata->sbdata (0, w);
+  mSbdata->write (0);
+
+  do
+    mSbcs->read ();
+  while (mSbcs->sbbusy ());
+
+  err = mSbcs->sberror ();
+  return err;
 }
 
 /// \brief Reset the underlying DTM.
@@ -510,7 +887,7 @@ operator<< (ostream &s, const unique_ptr<Dmi::Data> &p)
   std::ostringstream oss ("[");
 
   for (size_t i = 0; i < p->NUM_REGS; i++)
-    oss << Utils::hexStr (p->mDataReg[i])
+    oss << Utils::hexStr (p->mDataReg[i], 8)
         << ((i == (p->NUM_REGS - 1)) ? "]" : ", ");
 
   return s << oss.str ();
@@ -527,7 +904,7 @@ operator<< (ostream &s, const unique_ptr<Dmi::Data> &p)
 /// \param[in] dtm_  The DTM we shall use.  This is a unique_ptr owned by the
 ///                  Dmi, so passed and stored by reference.
 Dmi::Dmcontrol::Dmcontrol (unique_ptr<IDtm> &dtm_)
-    : mPrettyPrint (false), mDtm (dtm_),
+    : mCurrentHartsel (0), mPrettyPrint (false), mDtm (dtm_),
       mDmcontrolReg (Dmi::Dmcontrol::RESET_VALUE)
 {
 }
@@ -542,10 +919,14 @@ Dmi::Dmcontrol::read ()
 }
 
 /// \brief Set the \c dmcontrol register to its reset value.
+///
+/// \note This includes setting the \c hartsel field to its most recently
+///       selected value.
 void
 Dmi::Dmcontrol::reset ()
 {
   mDmcontrolReg = RESET_VALUE;
+  hartsel (mCurrentHartsel);
 }
 
 /// \brief Write the value of the \c dmcontrol register.
@@ -665,6 +1046,8 @@ Dmi::Dmcontrol::hartsel () const
 /// Sets \c hartslehi to \p (hartselVal >> 10) & 0x3ff
 /// Sets \c hartsello to \p hartselVal & 0x3ff
 ///
+/// Also remembers this is the currently selected hart for use when reseting.
+///
 /// \param[in] hartselVal  The value of \c hartsel to set.
 void
 Dmi::Dmcontrol::hartsel (const uint32_t hartselVal)
@@ -673,6 +1056,8 @@ Dmi::Dmcontrol::hartsel (const uint32_t hartselVal)
     cerr << "Warning: requested value of hartsel, " << hartselVal
          << ", exceeds the maximum permitted value: higher bits ignored."
          << endl;
+
+  mCurrentHartsel = hartselVal;
 
   uint32_t hartsello = (hartselVal << HARTSELLO_OFFSET) & HARTSELLO_MASK;
   uint32_t hartselhi
@@ -783,7 +1168,7 @@ operator<< (ostream &s, const unique_ptr<Dmi::Dmcontrol> &p)
         << ", ndmreset = " << Utils::boolStr (p->ndmreset ())
         << ", dmactive = " << Utils::boolStr (p->dmactive ()) << " ]";
   else
-    oss << Utils::hexStr (p->mDmcontrolReg);
+    oss << Utils::hexStr (p->mDmcontrolReg, 8);
 
   return s << oss.str ();
 }
@@ -977,7 +1362,7 @@ operator<< (ostream &s, const unique_ptr<Dmi::Dmstatus> &p)
         << ", confstrptrvalid = " << Utils::boolStr (p->confstrptrvalid ())
         << ", version = " << static_cast<uint16_t> (p->version ()) << " ]";
   else
-    oss << Utils::hexStr (p->mDmstatusReg);
+    oss << Utils::hexStr (p->mDmstatusReg, 8);
 
   return s << oss.str ();
 }
@@ -1069,7 +1454,7 @@ operator<< (ostream &s, const unique_ptr<Dmi::Hartinfo> &p)
         << ", datasize = " << static_cast<uint16_t> (p->datasize ())
         << ", dataaddr = 0x" << Utils::hexStr (p->dataaddr (), 3) << " ]";
   else
-    oss << Utils::hexStr (p->mHartinfoReg);
+    oss << Utils::hexStr (p->mHartinfoReg, 8);
 
   return s << oss.str ();
 }
@@ -1220,7 +1605,7 @@ std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Hawindowsel> &p)
 {
   std::ostringstream oss;
-  oss << Utils::hexStr (p->mHawindowselReg);
+  oss << Utils::hexStr (p->mHawindowselReg, 8);
   return s << oss.str ();
 }
 
@@ -1291,7 +1676,7 @@ std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Hawindow> &p)
 {
   std::ostringstream oss;
-  oss << Utils::hexStr (p->mHawindowReg);
+  oss << Utils::hexStr (p->mHawindowReg, 8);
   return s << oss.str ();
 }
 
@@ -1368,10 +1753,57 @@ Dmi::Abstractcs::busy () const
 /// \brief Get the \c cmderr bits of \c abstractcs
 ///
 /// \return The value of \c cmderr
-uint8_t
+Dmi::Abstractcs::CmderrVal
 Dmi::Abstractcs::cmderr () const
 {
-  return static_cast<uint8_t> ((mAbstractcsReg & CMDERR_MASK) >> CMDERR_OFFSET);
+  switch (static_cast<int> ((mAbstractcsReg & CMDERR_MASK) >> CMDERR_OFFSET))
+    {
+    case CMDERR_NONE:
+      return CMDERR_NONE;
+    case CMDERR_BUSY:
+      return CMDERR_BUSY;
+    case CMDERR_UNSUPPORTED:
+      return CMDERR_UNSUPPORTED;
+    case CMDERR_EXCEPT:
+      return CMDERR_EXCEPT;
+    case CMDERR_HALT_RESUME:
+      return CMDERR_HALT_RESUME;
+    case CMDERR_BUS:
+      return CMDERR_BUS;
+    case CMDERR_OTHER:
+      return CMDERR_OTHER;
+
+    default:
+      return CMDERR_UNKNOWN;
+    }
+}
+
+/// \brief Get the value of cmderr as a string.
+///
+/// \return  The constant string corresponding to the cmderr
+const char *
+Dmi::Abstractcs::cmderrName (Dmi::Abstractcs::CmderrVal err)
+{
+  switch (err)
+    {
+    case Dmi::Abstractcs::CMDERR_NONE:
+      return "None";
+    case Dmi::Abstractcs::CMDERR_BUSY:
+      return "Busy";
+    case Dmi::Abstractcs::CMDERR_UNSUPPORTED:
+      return "Unsupported";
+    case Dmi::Abstractcs::CMDERR_EXCEPT:
+      return "Exception";
+    case Dmi::Abstractcs::CMDERR_HALT_RESUME:
+      return "Halt/resume";
+    case Dmi::Abstractcs::CMDERR_BUS:
+      return "Bus error";
+    case Dmi::Abstractcs::CMDERR_OTHER:
+      return "Other";
+
+    default:
+      return "???";
+    }
 }
 
 /// \brief Clear the \c cmderr bits of \c abstractcs
@@ -1404,28 +1836,17 @@ operator<< (ostream &s, const unique_ptr<Dmi::Abstractcs> &p)
   std::ostringstream oss;
 
   if (p->mPrettyPrint)
-    oss << "[ progbufsize = " << static_cast<uint16_t> (p->progbufsize ())
-        << ", busy = " << Utils::boolStr (p->busy ())
-        << ", cmderr = " << static_cast<uint16_t> (p->cmderr ()) << " ("
-        << (p->cmderr () == 0
-                ? "none"
-                : p->cmderr () == 1
-                      ? "busy"
-                      : p->cmderr () == 2
-                            ? "not supported"
-                            : p->cmderr () == 3
-                                  ? "exception"
-                                  : p->cmderr () == 4
-                                        ? "halt/resume"
-                                        : p->cmderr () == 5
-                                              ? "bus"
-                                              : p->cmderr () == 7 ? "other"
-                                                                  : "INVALID")
-        << ")"
-        << ", datacount = 0x" << static_cast<uint16_t> (p->datacount ())
-        << " ]";
+    {
+      Dmi::Abstractcs::CmderrVal err = p->cmderr ();
+      oss << "[ progbufsize = " << static_cast<uint16_t> (p->progbufsize ())
+          << ", busy = " << Utils::boolStr (p->busy ())
+          << ", cmderr = " << static_cast<uint16_t> (err) << " ("
+          << Dmi::Abstractcs::cmderrName (err) << ")"
+          << ", datacount = 0x" << static_cast<uint16_t> (p->datacount ())
+          << " ]";
+    }
   else
-    oss << Utils::hexStr (p->mAbstractcsReg);
+    oss << Utils::hexStr (p->mAbstractcsReg, 8);
 
   return s << oss.str ();
 }
@@ -1538,7 +1959,7 @@ Dmi::Command::aarsize (const Dmi::Command::AasizeEnum aarsizeVal)
     case ACCESS32:
     case ACCESS64:
     case ACCESS128:
-      mCommandReg &= AARSIZE_MASK;
+      mCommandReg &= ~AARSIZE_MASK;
       mCommandReg |= static_cast<uint32_t> (aarsizeVal) << AARSIZE_OFFSET;
       return;
 
@@ -1565,7 +1986,7 @@ Dmi::Command::aamsize (const Dmi::Command::AasizeEnum aamsizeVal)
     case ACCESS32:
     case ACCESS64:
     case ACCESS128:
-      mCommandReg &= AAMSIZE_MASK;
+      mCommandReg &= ~AAMSIZE_MASK;
       mCommandReg |= static_cast<uint32_t> (aamsizeVal) << AAMSIZE_OFFSET;
       return;
 
@@ -1670,7 +2091,7 @@ operator<< (ostream &s, const unique_ptr<Dmi::Command> &p)
         << ", control = 0x" << hex << setw (6) << setfill ('0')
         << ((p->mCommandReg & p->CONTROL_MASK) >> p->CONTROL_OFFSET) << " ]";
   else
-    oss << Utils::hexStr (p->mCommandReg);
+    oss << Utils::hexStr (p->mCommandReg, 8);
 
   return s << oss.str ();
 }
@@ -1792,7 +2213,7 @@ operator<< (ostream &s, const unique_ptr<Dmi::Abstractauto> &p)
         << p->autoexecprogbuf () << ", autoexecdata = 0x" << setw (3)
         << p->autoexecdata () << " ]";
   else
-    oss << Utils::hexStr (p->mAbstractautoReg);
+    oss << Utils::hexStr (p->mAbstractautoReg, 8);
 
   return s << oss.str ();
 }
@@ -1912,7 +2333,7 @@ std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Nextdm> &p)
 {
   std::ostringstream oss;
-  oss << Utils::hexStr (p->mNextdmReg);
+  oss << Utils::hexStr (p->mNextdmReg, 8);
   return s << oss.str ();
 }
 
@@ -2094,7 +2515,7 @@ std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Authdata> &p)
 {
   std::ostringstream oss;
-  oss << Utils::hexStr (p->mAuthdataReg);
+  oss << Utils::hexStr (p->mAuthdataReg, 8);
   return s << oss.str ();
 }
 
@@ -2257,7 +2678,7 @@ Dmi::Sbcs::prettyPrint (const bool flag)
 uint8_t
 Dmi::Sbcs::sbversion () const
 {
-  return static_cast<uint8_t> ((mSbcsReg | SBVERSION_MASK) >> SBVERSION_OFFSET);
+  return static_cast<uint8_t> ((mSbcsReg & SBVERSION_MASK) >> SBVERSION_OFFSET);
 }
 
 /// \brief Get the \c sbbusyerror bit in \c sbcs.
@@ -2315,10 +2736,24 @@ Dmi::Sbcs::sbreadonaddr (const bool flag)
 /// \brief Get the \c sbaccess bits of \c sbcs.
 ///
 /// \return  The value of the \c sbaccess bits of \c sbcs.
-uint8_t
+Dmi::Sbcs::SbaccessVal
 Dmi::Sbcs::sbaccess () const
 {
-  return static_cast<uint8_t> ((mSbcsReg | SBACCESS_MASK) >> SBACCESS_OFFSET);
+  SbaccessVal val = static_cast<SbaccessVal> ((mSbcsReg & SBACCESS_MASK)
+                                              >> SBACCESS_OFFSET);
+
+  switch (val)
+    {
+    case SBACCESS_8:
+    case SBACCESS_16:
+    case SBACCESS_32:
+    case SBACCESS_64:
+    case SBACCESS_128:
+      return val;
+
+    default:
+      return SBACCESS_UNKNOWN;
+    }
 }
 
 /// \brief Set the \c sbaccess bits in \c sbcs.
@@ -2383,10 +2818,25 @@ Dmi::Sbcs::sbreadondata (const bool flag)
 /// \brief Get the \c sberror bits in \c sbcs.
 ///
 /// \return  The value of the \c sberror bits in \c sbcs.
-uint8_t
+Dmi::Sbcs::SberrorVal
 Dmi::Sbcs::sberror () const
 {
-  return static_cast<uint8_t> ((mSbcsReg | SBERROR_MASK) >> SBERROR_OFFSET);
+  SberrorVal err
+      = static_cast<SberrorVal> ((mSbcsReg & SBERROR_MASK) >> SBERROR_OFFSET);
+
+  switch (err)
+    {
+    case SBERR_NONE:
+    case SBERR_TIMEOUT:
+    case SBERR_BAD_ADDR:
+    case SBERR_ALIGNMENT:
+    case SBERR_BAD_SIZE:
+    case SBERR_OTHER:
+      return err;
+
+    default:
+      return SBERR_UNKNOWN;
+    }
 }
 
 /// \brief Clear the \c sberror bits in \c sbcs.
@@ -2404,7 +2854,7 @@ Dmi::Sbcs::sberrorClear ()
 uint8_t
 Dmi::Sbcs::sbasize () const
 {
-  return static_cast<uint8_t> ((mSbcsReg | SBASIZE_MASK) >> SBASIZE_OFFSET);
+  return static_cast<uint8_t> ((mSbcsReg & SBASIZE_MASK) >> SBASIZE_OFFSET);
 }
 
 /// \brief Get the \c sbaccess128 bit in \c sbcs.
@@ -2457,6 +2907,77 @@ Dmi::Sbcs::sbaccess8 () const
   return (mSbcsReg & SBACCESS8_MASK) != 0;
 }
 
+/// \brief Give the name of a \c sbversion field.
+///
+/// \param[in] val  The value of the \c sbversion field
+/// \return The name of the field.
+const char *
+Dmi::Sbcs::sbversionName (uint8_t val)
+{
+  switch (val)
+    {
+    case 0:
+      return "pre 1 Jan 2019";
+    case 1:
+      return "debug spec 0.13.2";
+
+    default:
+      return "reserved";
+    }
+}
+
+/// \brief Give the name of a \c sbaccess field.
+///
+/// \param[in] val  The value of the \c sbaccess field
+/// \return The name of the field.
+const char *
+Dmi::Sbcs::sbaccessName (Dmi::Sbcs::SbaccessVal val)
+{
+  switch (val)
+    {
+    case SBACCESS_8:
+      return "8-bit";
+    case SBACCESS_16:
+      return "16-bit";
+    case SBACCESS_32:
+      return "32-bit";
+    case SBACCESS_64:
+      return "64-bit";
+    case SBACCESS_128:
+      return "128-bit";
+
+    default:
+      return "??";
+    }
+}
+
+/// \brief Give the name of a \c sberror field.
+///
+/// \param[in] val  The value of the \c sberror field
+/// \return The name of the field.
+const char *
+Dmi::Sbcs::sberrorName (Dmi::Sbcs::SberrorVal val)
+{
+  switch (val)
+    {
+    case SBERR_NONE:
+      return "none";
+    case SBERR_TIMEOUT:
+      return "timeout";
+    case SBERR_BAD_ADDR:
+      return "bad address";
+    case SBERR_ALIGNMENT:
+      return "bad alignment";
+    case SBERR_BAD_SIZE:
+      return "bad size";
+    case SBERR_OTHER:
+      return "other";
+
+    default:
+      return "???";
+    }
+}
+
 /// \brief Output operator for the Dmi::Sbcs class
 ///
 /// \param[in] s  The stream to which output is written
@@ -2468,49 +2989,30 @@ operator<< (ostream &s, const unique_ptr<Dmi::Sbcs> &p)
   std::ostringstream oss;
 
   if (p->mPrettyPrint)
-    oss << "[ sbversion = " << static_cast<uint16_t> (p->sbversion ()) << " ("
-        << (p->sbversion () == 0
-                ? "pre 1 Jan 2019"
-                : p->sbversion () == 1 ? "debug spec 0.13.2" : "RESERVED")
-        << ")"
-        << ", sbbusyerror = " << Utils::boolStr (p->sbbusyerror ())
-        << ", sbbusy = " << Utils::boolStr (p->sbbusy ())
-        << ", sbreadonaddr = " << Utils::boolStr (p->sbreadonaddr ())
-        << ", sbaccess = " << static_cast<uint16_t> (p->sbaccess ()) << " ("
-        << (p->sbaccess () == 0
-                ? "8-bit"
-                : p->sbaccess () == 1
-                      ? "16-bit"
-                      : p->sbaccess () == 2
-                            ? "32-bit"
-                            : p->sbaccess () == 3
-                                  ? "64-bit"
-                                  : p->sbaccess () == 4 ? "128-bit" : "INVALID")
-        << ")"
-        << ", sbautoincrement = " << Utils::boolStr (p->sbautoincrement ())
-        << ", sbreadondata = " << Utils::boolStr (p->sbreadondata ())
-        << ", sberror = " << static_cast<uint16_t> (p->sberror ()) << " ("
-        << (p->sberror () == 0
-                ? "none"
-                : p->sberror () == 1
-                      ? "timeout"
-                      : p->sberror () == 2
-                            ? "bad address"
-                            : p->sberror () == 3
-                                  ? "alignment"
-                                  : p->sberror () == 4
-                                        ? "bad size"
-                                        : p->sberror () == 7 ? "other"
-                                                             : "INVALID")
-        << ")"
-        << ", sbasize = " << static_cast<uint16_t> (p->sbasize ())
-        << ", sbaccess128 = " << Utils::boolStr (p->sbaccess128 ())
-        << ", sbaccess64 = " << Utils::boolStr (p->sbaccess64 ())
-        << ", sbaccess32 = " << Utils::boolStr (p->sbaccess32 ())
-        << ", sbaccess16 = " << Utils::boolStr (p->sbaccess16 ())
-        << ", sbaccess8 = " << Utils::boolStr (p->sbaccess8 ()) << " ]";
+    {
+      uint8_t version = p->sbversion ();
+      Dmi::Sbcs::SbaccessVal aval = p->sbaccess ();
+      Dmi::Sbcs::SberrorVal err = p->sberror ();
+      oss << "[ sbversion = " << static_cast<uint16_t> (version) << " ("
+          << Dmi::Sbcs::sbversionName (version) << ")"
+          << ", sbbusyerror = " << Utils::boolStr (p->sbbusyerror ())
+          << ", sbbusy = " << Utils::boolStr (p->sbbusy ())
+          << ", sbreadonaddr = " << Utils::boolStr (p->sbreadonaddr ())
+          << ", sbaccess = " << static_cast<uint16_t> (aval) << " ("
+          << Dmi::Sbcs::sbaccessName (aval) << ")"
+          << ", sbautoincrement = " << Utils::boolStr (p->sbautoincrement ())
+          << ", sbreadondata = " << Utils::boolStr (p->sbreadondata ())
+          << ", sberror = " << static_cast<uint16_t> (err) << " ("
+          << Dmi::Sbcs::sberrorName (err) << ")"
+          << ", sbasize = " << static_cast<uint16_t> (p->sbasize ())
+          << ", sbaccess128 = " << Utils::boolStr (p->sbaccess128 ())
+          << ", sbaccess64 = " << Utils::boolStr (p->sbaccess64 ())
+          << ", sbaccess32 = " << Utils::boolStr (p->sbaccess32 ())
+          << ", sbaccess16 = " << Utils::boolStr (p->sbaccess16 ())
+          << ", sbaccess8 = " << Utils::boolStr (p->sbaccess8 ()) << " ]";
+    }
   else
-    oss << Utils::hexStr (p->mSbcsReg);
+    oss << Utils::hexStr (p->mSbcsReg, 8);
 
   return s << oss.str ();
 }
@@ -2609,10 +3111,12 @@ Dmi::Sbdata::sbdata (const size_t n, const uint32_t sbdataVal)
 std::ostream &
 operator<< (ostream &s, const unique_ptr<Dmi::Sbdata> &p)
 {
-  std::ostringstream oss ("[");
+  std::ostringstream oss;
 
+  oss << "[";
   for (size_t i = 0; i < p->NUM_REGS; i++)
-    oss << p->mSbdataReg[i] << ((i == (p->NUM_REGS - 1)) ? "]" : ", ");
+    oss << "0x" << Utils::hexStr (p->mSbdataReg[i], 8)
+        << ((i == (p->NUM_REGS - 1)) ? "]" : ", ");
 
   return s << oss.str ();
 }

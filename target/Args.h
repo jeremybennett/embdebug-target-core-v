@@ -25,12 +25,14 @@ public:
   // API calls
   uint64_t clkPeriodNs () const;
   uint64_t durationNs () const;
+  unsigned int seed () const;
+  std::size_t maxBlock () const;
   std::string vcd () const;
   bool testStatus () const;
   bool testGprs () const;
   bool testFprs () const;
   bool testCsrs () const;
-  bool testFpuCsrs () const;
+  bool testMem () const;
 
   // Delete the copy assignment operator
   Args &operator= (const Args &) = delete;
@@ -42,6 +44,12 @@ private:
   /// \brief the duration of execution in nanoseconds
   uint64_t mDurationNs;
 
+  /// \brief Random number seed specified as argument (default 1)
+  unsigned int mSeed;
+
+  /// \brief Maximum size of memory block to test
+  std::size_t mMaxBlock;
+
   /// \brief Name of the VCD file (empty if not specified)
   std::string mVcd;
 
@@ -51,14 +59,14 @@ private:
   /// \brief True if we should test GPRs
   bool mTestGprs;
 
-  /// \brief True if we should test FPRs and FPU related CSRs
+  /// \brief True if we should test FPRs
   bool mTestFprs;
 
   /// \brief True if we should test CSRs
   bool mTestCsrs;
 
-  /// \brief True if we should test FPU related CSRs
-  bool mTestFpuCsrs;
+  /// \brief True if we should test memory
+  bool mTestMem;
 };
 
 #endif // ARGS_H

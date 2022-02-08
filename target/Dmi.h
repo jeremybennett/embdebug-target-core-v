@@ -160,6 +160,9 @@ public:
     /// \brief The reset value of the \c dmcontrol register in the DMI.
     static const uint32_t RESET_VALUE = 0x0;
 
+    /// \brief The most recently selected value of \c hartsel
+    uint32_t mCurrentHartsel;
+
     /// \brief Whether pretty printing is enabled for the \c dmcontrol
     /// register.
     bool mPrettyPrint;
@@ -495,6 +498,19 @@ public:
   class Abstractcs
   {
   public:
+    // Public enumeration of cmderr falues
+    enum CmderrVal
+    {
+      CMDERR_NONE = 0,
+      CMDERR_BUSY = 1,
+      CMDERR_UNSUPPORTED = 2,
+      CMDERR_EXCEPT = 3,
+      CMDERR_HALT_RESUME = 4,
+      CMDERR_BUS = 5,
+      CMDERR_OTHER = 7,
+      CMDERR_UNKNOWN = -1,
+    };
+
     // Constructors & destructor
     Abstractcs () = delete;
     Abstractcs (std::unique_ptr<IDtm> &dtm_);
@@ -510,9 +526,10 @@ public:
     void prettyPrint (const bool flag);
     uint8_t progbufsize () const;
     bool busy () const;
-    uint8_t cmderr () const;
+    CmderrVal cmderr () const;
     void cmderrClear ();
     uint8_t datacount () const;
+    static const char *cmderrName (CmderrVal err);
 
     // Output operator is a friend
     friend std::ostream &operator<< (std::ostream &s,
@@ -575,6 +592,7 @@ public:
   class Command
   {
   public:
+    /// \brief An enumeration for the type of abstract command.
     enum CmdtypeEnum
     {
       ACCESS_REG = 0,
@@ -582,6 +600,7 @@ public:
       ACCESS_MEM = 2,
     };
 
+    // \brief An enumeration indicating the size of memory/register acces.
     enum AasizeEnum
     {
       ACCESS8 = 0,
@@ -958,6 +977,29 @@ public:
   class Sbcs
   {
   public:
+    // Public enumeration of sbaccess values
+    enum SbaccessVal
+    {
+      SBACCESS_8 = 0,
+      SBACCESS_16 = 1,
+      SBACCESS_32 = 2,
+      SBACCESS_64 = 3,
+      SBACCESS_128 = 4,
+      SBACCESS_UNKNOWN = 5
+    };
+
+    // Public enumeration of sberror values
+    enum SberrorVal
+    {
+      SBERR_NONE = 0,
+      SBERR_TIMEOUT = 1,
+      SBERR_BAD_ADDR = 2,
+      SBERR_ALIGNMENT = 3,
+      SBERR_BAD_SIZE = 4,
+      SBERR_OTHER = 7,
+      SBERR_UNKNOWN = 8
+    };
+
     // Constructors & destructor
     Sbcs () = delete;
     Sbcs (std::unique_ptr<IDtm> &dtm_);
@@ -977,13 +1019,13 @@ public:
     bool sbbusy () const;
     bool sbreadonaddr () const;
     void sbreadonaddr (const bool flag);
-    uint8_t sbaccess () const;
+    SbaccessVal sbaccess () const;
     void sbaccess (const uint8_t val);
     bool sbautoincrement () const;
     void sbautoincrement (const bool flag);
     bool sbreadondata () const;
     void sbreadondata (const bool flag);
-    uint8_t sberror () const;
+    SberrorVal sberror () const;
     void sberrorClear ();
     uint8_t sbasize () const;
     bool sbaccess128 () const;
@@ -991,6 +1033,9 @@ public:
     bool sbaccess32 () const;
     bool sbaccess16 () const;
     bool sbaccess8 () const;
+    static const char *sbversionName (uint8_t val);
+    static const char *sbaccessName (SbaccessVal val);
+    static const char *sberrorName (SberrorVal val);
 
     // Output operator is a friend
     friend std::ostream &operator<< (std::ostream &s,
@@ -1345,18 +1390,18 @@ public:
   CsrType csrType (const uint16_t csrAddr) const;
 
   // Register access API
-  uint32_t readCsr (uint16_t addr);
-  void writeCsr (uint16_t addr, uint32_t val);
-  uint32_t readGpr (std::size_t regNum);
-  void writeGpr (std::size_t regNum, uint32_t val);
-  uint32_t readFpr (std::size_t regNum);
-  void writeFpr (std::size_t regNum, uint32_t val);
+  Abstractcs::CmderrVal readCsr (uint16_t addr, uint32_t &res);
+  Abstractcs::CmderrVal writeCsr (uint16_t addr, uint32_t val);
+  Abstractcs::CmderrVal readGpr (std::size_t regNum, uint32_t &res);
+  Abstractcs::CmderrVal writeGpr (std::size_t regNum, uint32_t val);
+  Abstractcs::CmderrVal readFpr (std::size_t regNum, uint32_t &res);
+  Abstractcs::CmderrVal writeFpr (std::size_t regNum, uint32_t val);
 
   // Memory access API
-  bool readMem (uint64_t addr, std::size_t nBytes,
-		std::unique_ptr<uint8_t *> & buf);
-  bool writeMem (uint64_t addr, std::size_t nBytes,
-		 std::unique_ptr<uint8_t *> & buf);
+  Sbcs::SberrorVal readMem (uint64_t addr, std::size_t nBytes,
+                            std::unique_ptr<uint8_t[]> &buf);
+  Sbcs::SberrorVal writeMem (uint64_t addr, std::size_t nBytes,
+                             std::unique_ptr<uint8_t[]> &buf);
 
   // API for the underlying DTM
   void dtmReset ();

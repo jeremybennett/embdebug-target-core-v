@@ -19,8 +19,8 @@ using cxxopts::value;
 using std::cerr;
 using std::cout;
 using std::endl;
-using std::string;
 using std::size_t;
+using std::string;
 using std::vector;
 
 /// \brief Constructor.
@@ -36,13 +36,17 @@ Args::Args (int argc, char *argv[])
                           value<double> ()->default_value ("100"), "<speed>");
   options.add_options () ("d,duration-ns", "Simulation duration in nanoseconds",
                           value<uint64_t> ()->default_value ("0"), "<time>");
+  options.add_options () ("seed", "Random number seed",
+                          value<unsigned int> ()->default_value ("1"), "<n>");
+  options.add_options () ("max-block", "Maximum size of memory block to test",
+                          value<size_t> ()->default_value ("64"), "<n>");
   options.add_options () ("vcd", "Verilog Change Dump file name",
                           value<string> ()->default_value (""), "<filename>");
   options.add_options () ("test-status", "Run a test of hart status");
   options.add_options () ("test-gprs", "Run a test of the GPRs");
   options.add_options () ("test-fprs", "Run a test of the FPRs and FPU CSRs");
   options.add_options () ("test-csrs", "Run a test of the CSRs");
-  options.add_options () ("test-fpu-csrs", "Include FPU CSR tests");
+  options.add_options () ("test-mem", "Run a test of memory");
   options.add_options () ("h,help", "Produce help message and exit");
   options.add_options () ("v,version", "Produce version message and exit");
 
@@ -81,6 +85,11 @@ Args::Args (int argc, char *argv[])
   mClkPeriodNs = static_cast<uint64_t> (1000.0 / mhzVal);
 
   mDurationNs = res["duration-ns"].as<uint64_t> ();
+  mSeed = res["seed"].as<unsigned int> ();
+
+  mMaxBlock = res["max-block"].as<size_t> ();
+  if (mMaxBlock < 1)
+    mMaxBlock = 1;
 
   mVcd = res["vcd"].as<string> ();
 
@@ -88,16 +97,17 @@ Args::Args (int argc, char *argv[])
   if (!mVcd.empty ())
     {
       size_t len = mVcd.size ();
-      if ((len <= 4) || ((mVcd.rfind (".vcd", len - 4) == string::npos)
-			 && (mVcd.rfind (".VCD", len - 4) == string::npos)))
-	mVcd.append (".vcd");
+      if ((len <= 4)
+          || ((mVcd.rfind (".vcd", len - 4) == string::npos)
+              && (mVcd.rfind (".VCD", len - 4) == string::npos)))
+        mVcd.append (".vcd");
     }
 
   mTestStatus = res.count ("test-status") > 0;
   mTestGprs = res.count ("test-gprs") > 0;
   mTestFprs = res.count ("test-fprs") > 0;
   mTestCsrs = res.count ("test-csrs") > 0;
-  mTestFpuCsrs = res.count ("test-fpu-csrs") > 0;
+  mTestMem = res.count ("test-mem") > 0;
 }
 
 /// \brief Destructor.
@@ -123,6 +133,24 @@ uint64_t
 Args::clkPeriodNs () const
 {
   return mClkPeriodNs;
+}
+
+/// \brief Getter for the random number seed.
+///
+/// \return The random number seed.
+unsigned int
+Args::seed () const
+{
+  return mSeed;
+}
+
+/// \brief Getter for the maximum block size.
+///
+/// \return The random number seed.
+size_t
+Args::maxBlock () const
+{
+  return mMaxBlock;
 }
 
 /// \brief Getter for the run duration in nanoseconds.
@@ -170,14 +198,11 @@ Args::testCsrs () const
   return mTestCsrs;
 }
 
-/// \brief Getter for whether to test FPU related CSRs
+/// \brief Getter for whether to test memory
 ///
-/// \note This is always enabled if we are testing FP registers. This flag
-///       allows testing of these CSRs when the FPU is not enabled.
-///
-/// \return \c true if we should test FPU related CSRs, \c false otherwise.
+/// \return \c true if we should test memory, \c false otherwise.
 bool
-Args::testFpuCsrs () const
+Args::testMem () const
 {
-  return mTestFpuCsrs || mTestFprs;
+  return mTestMem;
 }

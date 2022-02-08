@@ -5,6 +5,7 @@
 // Copyright (C) 2021 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -37,7 +38,9 @@ string
 Utils::hexStr (const uint8_t val, const size_t len)
 {
   sOss.str ("");
-  sOss << hex << setfill ('0') << setw (len) << val;
+  // Cast is because 8 bit numerical values always attempt to print as a
+  // character.
+  sOss << hex << setfill ('0') << setw (len) << static_cast<uint16_t> (val);
   return sOss.str ();
 }
 
@@ -153,4 +156,16 @@ Utils::padStr (string s, size_t w, char c)
     sPadding.insert (sPadding.begin (), w - sLen, c);
 
   return sPadding;
+}
+
+/// \brief Wrapper for random number function
+///
+/// Returns a uint32_t in the range [0,n)
+///
+/// \param[in] n  Upper end of the range
+/// \returns a random number between 0 and n-1.
+uint32_t
+Utils::rand (uint32_t n)
+{
+  return static_cast<uint32_t> (std::rand ()) % n;
 }

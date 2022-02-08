@@ -33,6 +33,9 @@ public:
   // Generate a padding string
   static std::string padStr (std::string s, std::size_t w, char c = ' ');
 
+  // Generate a random number
+  static uint32_t rand (uint32_t n);
+
 private:
   static std::ostringstream sOss;
   static std::string sPadding;

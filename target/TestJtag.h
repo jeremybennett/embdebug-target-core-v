@@ -18,7 +18,7 @@ class TestJtag
 {
 public:
   // Constructor and destructor
-  TestJtag (std::unique_ptr<Dmi> &dmi_, uint32_t numHarts_);
+  TestJtag (std::unique_ptr<Dmi> &dmi_, uint32_t numHarts_, unsigned int seed_);
   TestJtag () = delete;
   ~TestJtag () = default;
 
@@ -31,7 +31,9 @@ public:
   void haltHart (uint32_t h);
   void testGprs ();
   void testFprs ();
-  void testCsrs (bool testFpuCsrs);
+  void testCsrs ();
+  void testMem (const char *regName, uint32_t baseADDR, uint32_t len,
+                std::size_t blockSize, bool readOnly);
 
 private:
   /// \brief How many registers to print per row
@@ -61,10 +63,21 @@ private:
   /// \brief Reference to the \c abstractcs DMI register
   std::unique_ptr<Dmi::Abstractcs> &mAbstractcs;
 
+  /// \brief Reference to the \c sbcs DMI register
+  std::unique_ptr<Dmi::Sbcs> &mSbcs;
+
   /// \brief General string stream for use by utility methods
   static std::ostringstream sOss;
 
   /// Utility methods
+  void testMemBlock (const char *region, uint32_t baseAddr, uint32_t len,
+                     bool readOnly);
+
+  bool testWriteRead (const char *region, const char *testName,
+                      uint32_t baseAddr, uint32_t len,
+                      std::unique_ptr<uint8_t[]> &origBuf);
+
+  /// Static utility methods
   static const char *gprAbiName (std::size_t regno);
   static std::string fullGprName (std::size_t regno);
   static const char *fprAbiName (std::size_t regno);
