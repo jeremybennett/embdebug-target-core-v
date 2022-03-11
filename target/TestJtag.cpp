@@ -291,7 +291,7 @@ TestJtag::testFprs ()
   for (size_t r = 0; r < 32; r++)
     {
       string regName = fullFprName (r);
-      Dmi::Abstractcs::CmderrVal err = mDmi->readFpr (r + 0x20, regval[r]);
+      Dmi::Abstractcs::CmderrVal err = mDmi->readFpr (r, regval[r]);
 
       if ((r % REGS_PER_ROW) == 0)
         cout << "  ";
@@ -319,7 +319,7 @@ TestJtag::testFprs ()
       for (size_t i = 0; i < (sizeof (testvals) / sizeof (testvals[0])); i++)
         {
           Dmi::Abstractcs::CmderrVal err
-              = mDmi->writeFpr (r + 0x20, testvals[i]);
+              = mDmi->writeFpr (r, testvals[i]);
           if (err != Dmi::Abstractcs::CMDERR_NONE)
             {
               string regName = fullFprName (r);
@@ -329,7 +329,7 @@ TestJtag::testFprs ()
             }
 
           uint32_t rval;
-          err = mDmi->readFpr (r + 0x20, rval);
+          err = mDmi->readFpr (r, rval);
 
           if (err != Dmi::Abstractcs::CMDERR_NONE)
             {

@@ -307,8 +307,8 @@ Dmi::writeGpr (size_t regNum, uint32_t val)
 Dmi::Abstractcs::CmderrVal
 Dmi::readFpr (size_t regNum, uint32_t &res)
 {
-  Abstractcs::CmderrVal err
-      = readCsr (FPR_BASE + static_cast<uint16_t> (regNum), res);
+  uint16_t csrNum = FPR_BASE + static_cast<uint16_t> (regNum);
+  Abstractcs::CmderrVal err = readCsr (csrNum, res);
   return err;
 }
 
@@ -320,7 +320,8 @@ Dmi::readFpr (size_t regNum, uint32_t &res)
 Dmi::Abstractcs::CmderrVal
 Dmi::writeFpr (size_t regNum, uint32_t val)
 {
-  return writeCsr (FPR_BASE + static_cast<uint16_t> (regNum), val);
+  uint16_t csrNum = FPR_BASE + static_cast<uint16_t> (regNum);
+  return writeCsr (csrNum, val);
 }
 
 /// \brief Read from memory
