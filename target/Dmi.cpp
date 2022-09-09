@@ -2,7 +2,7 @@
 //
 // This file is part of the Embecosm Debug Server target for CORE-V MCU
 //
-// Copyright (C) 2021 Embecosm Limited
+// Copyright (C) 2022 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
 #include <algorithm>
@@ -1814,6 +1814,12 @@ void
 Dmi::Abstractcs::cmderrClear ()
 {
   mAbstractcsReg |= CMDERR_MASK;
+}
+
+uint64_t
+Dmi::simTimeCountNs () const
+{
+  return mDtm->simTimeCountNs();
 }
 
 /// \brief Get the \c datacount bits of \c abstractcs

@@ -2,7 +2,7 @@
 //
 // This file is part of the Embecosm Debug Server target for CORE-V MCU
 //
-// Copyright (C) 2021 Embecosm Limited
+// Copyright (C) 2022 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
 #ifndef IDTM_H
@@ -26,6 +26,8 @@ public:
   virtual bool reset () = 0;
   virtual uint32_t dmiRead (uint64_t address) = 0;
   virtual void dmiWrite (uint64_t address, uint32_t wdata) = 0;
+
+  virtual uint64_t simTimeCountNs () const = 0;
 
   // Delete the copy assignment operator
   IDtm &operator= (const IDtm &) = delete;

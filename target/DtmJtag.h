@@ -2,7 +2,7 @@
 //
 // This file is part of the Embecosm Debug Server target for CORE-V MCU
 //
-// Copyright (C) 2021 Embecosm Limited
+// Copyright (C) 2022 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
 #ifndef DTM_JTAG_H
@@ -27,6 +27,7 @@ public:
   bool reset () override;
   virtual uint32_t dmiRead (uint64_t address) override;
   virtual void dmiWrite (uint64_t address, uint32_t wdata) override;
+  uint64_t simTimeCountNs () const;
 
   // Delete the copy assignment operator
   DtmJtag &operator= (const DtmJtag &) = delete;

@@ -2,7 +2,7 @@
 //
 // This file is part of the Embecosm Debug Server target for CORE-V MCU
 //
-// Copyright (C) 2021 Embecosm Limited
+// Copyright (C) 2022 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
 #ifndef TAP_H
@@ -28,6 +28,8 @@ public:
   uint64_t accessReg (const uint8_t ir, uint64_t wdata, const uint8_t len);
   void writeReg (const uint8_t ir, uint64_t wdata, const uint8_t len);
   uint64_t readReg (const uint8_t ir, const uint8_t len);
+
+  uint64_t simTimeCountNs () const;
 
   // Delete the copy assignment operator
   Tap &operator= (const Tap &) = delete;

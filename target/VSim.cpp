@@ -2,7 +2,7 @@
 //
 // This file is part of the Embecosm Debug Server target for CORE-V MCU
 //
-// Copyright (C) 2021 Embecosm Limited
+// Copyright (C) 2022 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
 #include <iostream>
@@ -96,6 +96,12 @@ vluint64_t
 VSim::simTimeNs () const
 {
   return mSimTimeTicks;
+}
+
+uint64_t
+VSim::simTimeCount () const 
+{
+  return mTickCount;
 }
 
 /// \brief Determine if we have finished simulating

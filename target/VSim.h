@@ -2,7 +2,7 @@
 //
 // This file is part of the Embecosm Debug Server target for CORE-V MCU
 //
-// Copyright (C) 2021 Embecosm Limited
+// Copyright (C) 2022 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
 #ifndef VSIM_H
@@ -48,6 +48,8 @@ public:
 
   // Delete the copy assignment operator
   VSim &operator= (const VSim &) = delete;
+
+  uint64_t simTimeCount () const;
 
 private:
   /// \brief The verilator simulation context

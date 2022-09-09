@@ -2,7 +2,7 @@
 //
 // This file is part of the Embecosm Debug Server target for CORE-V MCU
 //
-// Copyright (C) 2021 Embecosm Limited
+// Copyright (C) 2022 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
 #include <iomanip>
@@ -187,4 +187,10 @@ void
 DtmJtag::writeDtmcs (const uint32_t val)
 {
   mTap->writeReg (static_cast<uint8_t> (DTMCS), val, 32);
+}
+
+uint64_t
+DtmJtag::simTimeCountNs () const
+{
+  return mTap->simTimeCountNs();
 }
