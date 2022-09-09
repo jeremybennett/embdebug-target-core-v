@@ -2,7 +2,7 @@
 //
 // This file is part of the Embecosm Debug Server target for CORE-V MCU
 //
-// Copyright (C) 2021 Embecosm Limited
+// Copyright (C) 2022 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
 /// \mainpage Embdebug CORE-V Verilator target
@@ -65,6 +65,11 @@ main (int argc, char *argv[])
   // Reset the processor
   dmi->dtmReset ();
 
+  uint64_t simtime_clock_start 
+	  = dmi->simTimeCountNs();
+  auto realtime_clock_start 
+	  = std::chrono::system_clock::now();
+  
   // Count the harts and create the testsuite
   uint32_t numHarts = countHarts (dmi);
   unique_ptr<TestJtag> testsuite (new TestJtag (dmi, numHarts, args->seed ()));
@@ -110,6 +115,63 @@ main (int argc, char *argv[])
                               mb, false);
         }
     }
+
+  auto realtime_clock_end  
+          = std::chrono::system_clock::now();
+  uint64_t simtime_clock_end 
+	  = dmi->simTimeCountNs();
+
+  auto realtime_elapsed_ns 
+	  = std::chrono::duration_cast<std::chrono::nanoseconds>(
+			  realtime_clock_end - realtime_clock_start);
+  uint64_t simtime_elapsed_ns 
+	  = simtime_clock_end 
+	    - simtime_clock_start;
+
+  /* Initializing temporaries */
+  const uint64_t realtime_elapsed_count_ns
+	  = realtime_elapsed_ns.count();
+  const double realtime_elapsed_count_s
+	  = (double) realtime_elapsed_count_ns 
+	    / 1000000000;
+  const double clock_rate 
+	  = double(1) / double(args->clkPeriodNs());
+  const uint64_t simulated_cycles
+	  = (clock_rate * simtime_elapsed_ns);
+  const double simulation_frequency
+	  = double(simulated_cycles) 
+	    / double(realtime_elapsed_count_s)
+	    / 1000;
+  const uint64_t slow_down_factor 
+	  = (simtime_elapsed_ns != 0)
+	    ? (realtime_elapsed_count_ns / simtime_elapsed_ns)
+	    : 0;
+  /* Moving temporaries to strings */
+  const std::string str_real_time_elapsed_s
+         = std::to_string(realtime_elapsed_count_s);
+  const std::string str_simtime_elapsed
+         = std::to_string(simtime_elapsed_ns);
+  const std::string str_simulated_cycles
+         = std::to_string(simulated_cycles);
+  const std::string str_simulation_frequency_khz
+         = std::to_string(simulation_frequency);
+  const std::string str_slow_down_factor
+	  = std::to_string(slow_down_factor);
+  /* Displaying strings */
+  cout << "Real time elapsed: "
+       << str_real_time_elapsed_s
+       << "s"
+       << "\t\tSimulated Time Elapsed: "
+       << str_simtime_elapsed
+       << "ms"
+       << "\t\tSimulated Cycles: "
+       << str_simulated_cycles
+       << "\t\tSimulation Frequency: "
+       << str_simulation_frequency_khz
+       << "kHz"
+       << "\t\tSlow Down Factor: "
+       << str_slow_down_factor
+       << endl;
 
   // Delete the DMI, and hence DTM and TAP, which will save the VCD
   dmi.reset (nullptr);

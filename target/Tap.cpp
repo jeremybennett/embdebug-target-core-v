@@ -2,7 +2,7 @@
 //
 // This file is part of the Embecosm Debug Server target for CORE-V MCU
 //
-// Copyright (C) 2021 Embecosm Limited
+// Copyright (C) 2022 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
 #include <iomanip>
@@ -362,4 +362,10 @@ Tap::nameState (const State s) const
     return nameTable[s];
   else
     return "out-of-range";
+}
+
+uint64_t
+Tap::simTimeCountNs () const
+{
+  return mMcu->simTimeCount();
 }

@@ -2,7 +2,7 @@
 //
 // This file is part of the Embecosm Debug Server target for CORE-V MCU
 //
-// Copyright (C) 2021 Embecosm Limited
+// Copyright (C) 2022 Embecosm Limited
 // SPDX-License-Identifier: Apache-2.0
 
 #ifndef DMI_H
@@ -22,6 +22,8 @@
 class Dmi
 {
 public:
+  uint64_t simTimeCountNs () const;
+
   /// \brief The class modeling the abstract \c data registers.
   class Data
   {
