@@ -27,6 +27,7 @@ public:
   bool reset () override;
   virtual uint32_t dmiRead (uint64_t address) override;
   virtual void dmiWrite (uint64_t address, uint32_t wdata) override;
+  virtual uint64_t simTimeNs () const override;
 
   // Delete the copy assignment operator
   DtmJtag &operator= (const DtmJtag &) = delete;

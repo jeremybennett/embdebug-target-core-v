@@ -1405,6 +1405,7 @@ public:
 
   // API for the underlying DTM
   void dtmReset ();
+  uint64_t simTimeNs () const;
 
   // Accessors for registers
   std::unique_ptr<Data> &data ();

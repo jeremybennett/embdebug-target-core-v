@@ -11,8 +11,11 @@
 /// engagement with the Verilator model is the model of the JTAG TAP, and thus
 /// the Verilator model sits underneath this.
 
+#include <ctime>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 #include "Args.h"
 #include "Dmi.h"
@@ -21,8 +24,10 @@
 #include "TestJtag.h"
 #include "Utils.h"
 
+using std::cerr;
 using std::cout;
 using std::endl;
+using std::string;
 using std::unique_ptr;
 using std::vector;
 
@@ -50,6 +55,16 @@ countHarts (unique_ptr<Dmi> &dmi)
   return numHarts;
 }
 
+static const string
+ts2str (timespec t)
+{
+  std::ostringstream oss;
+
+  oss << std::dec << t.tv_sec << "." << std::setw (9) << std::setfill ('0')
+      << t.tv_nsec;
+  return oss.str ();
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -61,6 +76,18 @@ main (int argc, char *argv[])
   unique_ptr<IDtm> dtm (new DtmJtag (args->clkPeriodNs (), args->durationNs (),
                                      args->vcd ().c_str ()));
   unique_ptr<Dmi> dmi (new Dmi (std::move (dtm)));
+
+  // Get the start of real time and simulation time
+  timespec realStart;
+  uint64_t simStart = dmi->simTimeNs ();
+  if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &realStart) != 0)
+    {
+      cerr << "ERROR: Could not read start clock: " << strerror (errno) << endl;
+      return EXIT_FAILURE;
+    }
+
+  cout << "Start: real time: " << ts2str (realStart) << "s, sim time: "
+       << simStart << "ns" << endl;
 
   // Reset the processor
   dmi->dtmReset ();
@@ -110,6 +137,22 @@ main (int argc, char *argv[])
                               mb, false);
         }
     }
+
+  // Get the end of real time and simulation time
+  timespec realEnd;
+  uint64_t simEnd = dmi->simTimeNs ();
+  if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &realEnd) != 0)
+    {
+      cerr << "ERROR: Could not read end clock: " << strerror (errno) << endl;
+      return EXIT_FAILURE;
+    }
+
+  cout << "End: real time: " << ts2str (realEnd) << "s, sim time: "
+       << simEnd << "ns" << endl;
+  uint64_t cycles = (simEnd - simStart) / args->clkPeriodNs ();
+  double simKhz = static_cast<double> (cycles) / (static_cast<double> (realEnd.tv_sec) + static_cast<double> (realEnd.tv_nsec) / 1.0e9) / 1000.0;
+  cout << "Simulated cycles: " << cycles << ", clock rate: " << simKhz << "kHz"
+       << endl;
 
   // Delete the DMI, and hence DTM and TAP, which will save the VCD
   dmi.reset (nullptr);

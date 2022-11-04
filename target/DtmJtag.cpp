@@ -156,6 +156,15 @@ DtmJtag::dmiWrite (uint64_t address, uint32_t wdata)
          << ": ignored" << endl;
 }
 
+/// \brief Provide access to simulation time
+///
+/// \return The current simulation time in nanoseconds.
+uint64_t
+DtmJtag::simTimeNs () const
+{
+  return mTap->simTimeNs ();
+}
+
 /// \brief Read the IDCODE register.
 ///
 /// This identifies the target, and is a simple read of a 32-bit register.

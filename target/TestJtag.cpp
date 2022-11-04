@@ -272,7 +272,7 @@ TestJtag::testGprs ()
     }
 
   if (succeeded)
-    cout << "All GPRs written and read back corectly" << endl;
+    cout << "All GPRs written and read back correctly" << endl;
 }
 
 /// \brief Test all the FPRs
@@ -351,7 +351,7 @@ TestJtag::testFprs ()
     }
 
   if (succeeded)
-    cout << "All FPRs written and read back corectly" << endl;
+    cout << "All FPRs written and read back correctly" << endl;
 }
 
 /// \brief Test all the CSRs

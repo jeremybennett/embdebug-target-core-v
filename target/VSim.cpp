@@ -95,7 +95,7 @@ VSim::~VSim ()
 vluint64_t
 VSim::simTimeNs () const
 {
-  return mSimTimeTicks;
+  return mContextp->time ();
 }
 
 /// \brief Determine if we have finished simulating

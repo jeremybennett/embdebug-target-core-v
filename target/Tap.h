@@ -28,6 +28,7 @@ public:
   uint64_t accessReg (const uint8_t ir, uint64_t wdata, const uint8_t len);
   void writeReg (const uint8_t ir, uint64_t wdata, const uint8_t len);
   uint64_t readReg (const uint8_t ir, const uint8_t len);
+  uint64_t simTimeNs () const;
 
   // Delete the copy assignment operator
   Tap &operator= (const Tap &) = delete;

@@ -185,6 +185,15 @@ Tap::shiftIr (const uint8_t ireg)
   static_cast<void> (gotoState (UPDATE_IR));
 }
 
+/// \brief Provide access to simulation time
+///
+/// \return The current simulation time in nanoseconds.
+uint64_t
+Tap::simTimeNs () const
+{
+  return static_cast<uint64_t> (mMcu->simTimeNs ());
+}
+
 /// \brief Helper to shift a data register in and out
 ///
 /// \param[in] dreg  The data register to shift in

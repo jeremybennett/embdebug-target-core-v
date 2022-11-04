@@ -622,6 +622,15 @@ Dmi::dtmReset ()
   mDtm->reset ();
 }
 
+/// \brief Provide access to simulation time
+///
+/// \return The current simulation time in nanoseconds.
+uint64_t
+Dmi::simTimeNs () const
+{
+  return mDtm->simTimeNs ();
+}
+
 /// \brief Get the \p data register.
 ///
 /// \return  An instance of class Data:: representing the set of \c data
