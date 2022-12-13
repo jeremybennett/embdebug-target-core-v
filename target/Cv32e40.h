@@ -10,6 +10,10 @@
 #define CV32E40_H
 
 #include "embdebug/ITarget.h"
+#include "Dmi.h"
+#include "DtmJtag.h"
+
+#include <memory>
 
 using namespace EmbDebug;
 
@@ -62,8 +66,18 @@ public:
   virtual const char *getTargetXML(ByteView name) override { return nullptr; }
 
 private:
-  // No private members needed for the template target. This is where you
-  // would place state and helper functions for a real target.
+  ITarget::WaitRes stepInstr(ITarget::ResumeRes &resumeRes);
+  ITarget::WaitRes runToBreak(ITarget::ResumeRes &resumeRes);
+  bool stoppedAtEbreak();
+
+  std::unique_ptr<Dmi> mDmi;
+  uint64_t simStart;
+  uint64_t clkPeriodNs;
+  uint64_t mCpuTime;
+  ITarget::ResumeType mRunAction;
+  uint64_t mCycleCnt;
+  uint64_t mInstrCnt;
+  std::unique_ptr<Dmi::Dmstatus> mDmstatus;
 };
 
 #endif
