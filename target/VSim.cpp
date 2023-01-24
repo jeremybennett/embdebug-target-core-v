@@ -52,7 +52,7 @@ VSim::VSim (const vluint64_t clkPeriodNs, const vluint64_t simTimeNs,
   // hard-coded multiples of the clock period.  Easy because we have also hard
   // coded 1 tick = 1ns.
   mClkHalfPeriodTicks = clkPeriodNs / 2;
-  mTckHalfPeriodTicks = mClkHalfPeriodTicks * 10;
+  mTckHalfPeriodTicks = mClkHalfPeriodTicks * 2;
   mResetPeriodTicks = mTckHalfPeriodTicks * 10;
   mSimTimeTicks = simTimeNs;
 
